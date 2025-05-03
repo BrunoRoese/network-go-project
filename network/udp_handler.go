@@ -18,7 +18,7 @@ func SendRequest(ip string, port int, data []byte) (string, error) {
 	}
 	defer conn.Close()
 
-	err = conn.SetDeadline(time.Now().Add(time.Second * 5))
+	err = conn.SetDeadline(time.Now().Add(GetUdpTimeout()))
 	if err != nil {
 		return "", err
 	}
@@ -35,4 +35,8 @@ func SendRequest(ip string, port int, data []byte) (string, error) {
 	}
 
 	return string(buffer[:n]), nil
+}
+
+func GetUdpTimeout() time.Duration {
+	return 5 * time.Second
 }

@@ -14,19 +14,21 @@ var (
 	defaultBroadcastMessage = "Hello, world!"
 )
 
-func (s *Server) Broadcast() {
-	ticker := time.NewTicker(1 * time.Second)
+func Broadcast() {
+	ticker := time.NewTicker(network.GetUdpTimeout())
 	defer ticker.Stop()
 
-	go func() {
-		err := s.broadcast()
+	for range ticker.C {
+		err := broadcast()
 		if err != nil {
 			slog.Error("Error broadcasting", slog.String("error", err.Error()))
+		} else {
+			slog.Info("Broadcast successful", slog.String("message", defaultBroadcastMessage))
 		}
-	}()
+	}
 }
 
-func (s *Server) broadcast() error {
+func broadcast() error {
 	slog.Info("Broadcasting to all IPs")
 
 	output, err := command.HandleCommand("arp", "-a")

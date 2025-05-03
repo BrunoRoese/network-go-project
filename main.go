@@ -25,7 +25,7 @@ func main() {
 
 	startUpServer(ip, port)
 
-	udpServer.Broadcast()
+	server.Broadcast()
 
 	<-shutdown
 
