@@ -1,21 +1,56 @@
 package main
 
 import (
+	"errors"
+	"flag"
 	"github.com/BrunoRoese/socket/config"
 	"github.com/BrunoRoese/socket/server"
 	"log/slog"
 	"os"
-	"os/signal"
-	"syscall"
 )
+
+var udpServer *server.Server
 
 func main() {
 	config.SetupLogger()
 
 	shutdown := make(chan os.Signal, 1)
-	udpServer, err := server.Init("127.0.0.1", 8080)
 
-	signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT)
+	ip, port, err := handleFlags()
+
+	if err != nil {
+		slog.Error("Error handling flags", slog.String("error", err.Error()))
+		return
+	}
+
+	startUpServer(ip, port)
+
+	<-shutdown
+
+	udpServer.Close()
+
+	slog.Info("Shutting down server")
+}
+
+func handleFlags() (ip string, port int, err error) {
+	flag.StringVar(&ip, "ip", "", "IP address to bind connection")
+	flag.IntVar(&port, "port", 0, "Port to bind connection")
+
+	flag.Parse()
+
+	if ip == "" {
+		return "", 0, errors.New("IP address not provided")
+	}
+
+	if port == 0 {
+		return "", 0, errors.New("Port not provided")
+	}
+
+	return ip, port, nil
+}
+
+func startUpServer(ip string, port int) {
+	udpServer, err := server.Init(ip, port)
 
 	if err != nil {
 		slog.Error("Error starting server, stopping application", slog.String("error", err.Error()))
@@ -24,9 +59,5 @@ func main() {
 
 	udpServer.StartListeningRoutine()
 
-	<-shutdown
-
-	udpServer.Close()
-
-	slog.Info("Shutting down server")
+	slog.Info("Server started")
 }
