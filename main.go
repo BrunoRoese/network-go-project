@@ -36,7 +36,6 @@ func main() {
 
 func handleFlags() (ip string, port int, err error) {
 	flag.StringVar(&ip, "ip", "", "IP address to bind connection")
-	flag.IntVar(&port, "port", 0, "Port to bind connection")
 
 	flag.Parse()
 
@@ -44,11 +43,7 @@ func handleFlags() (ip string, port int, err error) {
 		return "", 0, errors.New("IP address not provided")
 	}
 
-	if port == 0 {
-		return "", 0, errors.New("Port not provided")
-	}
-
-	return ip, port, nil
+	return ip, 8080, nil
 }
 
 func startUpServer(ip string, port int) {

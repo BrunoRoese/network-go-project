@@ -20,9 +20,7 @@ func Broadcast() {
 
 	for range ticker.C {
 		err := broadcast()
-		if err != nil {
-			slog.Error("Error broadcasting", slog.String("error", err.Error()))
-		} else {
+		if err == nil {
 			slog.Info("Broadcast successful", slog.String("message", defaultBroadcastMessage))
 		}
 	}
