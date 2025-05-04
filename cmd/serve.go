@@ -24,6 +24,11 @@ var (
 func run(cmd *cobra.Command, args []string) {
 	shutdown := make(chan os.Signal, 1)
 
+	if ip == "" {
+		slog.Error("IP address not provided")
+		os.Exit(1)
+	}
+
 	startUpServer(ip, 8080)
 
 	<-shutdown
@@ -49,13 +54,8 @@ func startUpServer(ip string, port int) {
 func init() {
 	rootCmd.AddCommand(serveCmd)
 
-	rootCmd.PersistentFlags().StringVarP(&ip, "ip", "ip", "", "Your network IP address")
+	rootCmd.PersistentFlags().StringVar(&ip, "ip", "", "Your network IP address")
 	err := rootCmd.MarkPersistentFlagRequired("ip")
-
-	if ip == "" {
-		slog.Error("IP address not provided")
-		os.Exit(1)
-	}
 
 	if err != nil {
 		slog.Error("Error marking flag as required", slog.String("error", err.Error()))
