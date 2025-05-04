@@ -31,6 +31,10 @@ func run(cmd *cobra.Command, args []string) {
 
 	startUpServer(ip, 8080)
 
+	slog.Info("Broadcasting to all IPs")
+
+	server.Broadcast()
+
 	<-shutdown
 
 	udpServer.Close()
@@ -52,10 +56,10 @@ func startUpServer(ip string, port int) {
 }
 
 func init() {
-	rootCmd.AddCommand(serveCmd)
+	serveCmd.PersistentFlags().StringVar(&ip, "ip", "", "Your network IP address")
+	err := serveCmd.MarkPersistentFlagRequired("ip")
 
-	rootCmd.PersistentFlags().StringVar(&ip, "ip", "", "Your network IP address")
-	err := rootCmd.MarkPersistentFlagRequired("ip")
+	rootCmd.AddCommand(serveCmd)
 
 	if err != nil {
 		slog.Error("Error marking flag as required", slog.String("error", err.Error()))
