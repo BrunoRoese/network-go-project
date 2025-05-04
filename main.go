@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
-	"github.com/BrunoRoese/socket/config"
+	"github.com/BrunoRoese/socket/cmd"
 	"github.com/BrunoRoese/socket/server"
 	"log/slog"
 	"os"
@@ -12,7 +12,7 @@ import (
 var udpServer *server.Server
 
 func main() {
-	config.SetupLogger()
+	cmd.Execute()
 
 	shutdown := make(chan os.Signal, 1)
 
@@ -22,8 +22,6 @@ func main() {
 		slog.Error("Error handling flags", slog.String("error", err.Error()))
 		return
 	}
-
-	startUpServer(ip, port)
 
 	server.Broadcast()
 
@@ -44,17 +42,4 @@ func handleFlags() (ip string, port int, err error) {
 	}
 
 	return ip, 8080, nil
-}
-
-func startUpServer(ip string, port int) {
-	udpServer, err := server.Init(ip, port)
-
-	if err != nil {
-		slog.Error("Error starting server, stopping application", slog.String("error", err.Error()))
-		return
-	}
-
-	udpServer.StartListeningRoutine()
-
-	slog.Info("Server started")
 }

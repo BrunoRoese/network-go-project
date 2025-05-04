@@ -39,12 +39,12 @@ func broadcast() error {
 	listOfIps := extractIPs(output)
 
 	for _, ip := range listOfIps {
-		slog.Info("Broadcasting to IP", slog.String("ip", ip))
+		//slog.Info("Broadcasting to IP", slog.String("ip", ip))
 
 		response, err := network.SendRequest(ip, defaultBroadcastPort, []byte(defaultBroadcastMessage))
 
 		if err != nil {
-			slog.Error("Error sending broadcast", slog.String("ip", ip), slog.String("error", err.Error()))
+			//slog.Error("Error sending broadcast", slog.String("ip", ip), slog.String("error", err.Error()))
 			continue
 		}
 
