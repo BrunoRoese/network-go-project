@@ -17,7 +17,11 @@ var (
 	once     sync.Once
 )
 
-func GetClientService(filePath string) *ClientService {
+func GetClientService() *ClientService {
+	return getClientService("resources/clients.json")
+}
+
+func getClientService(filePath string) *ClientService {
 	once.Do(func() {
 		instance = &ClientService{
 			ClientList: []*Client{},

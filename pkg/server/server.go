@@ -14,10 +14,6 @@ type Server struct {
 
 var instance *Server
 
-func GetServer() *Server {
-	return instance
-}
-
 func Init(ip string, port int) (*Server, error) {
 	var newServer Server
 
@@ -36,7 +32,7 @@ func Init(ip string, port int) (*Server, error) {
 
 	instance = &newServer
 
-	newServer.ClientService = client.GetClientService("resources/clients.json")
+	newServer.ClientService = client.GetClientService()
 
 	slog.Info("Server started", slog.String("ip", ip), slog.Int("port", port))
 

@@ -2,8 +2,7 @@ package protocol
 
 import (
 	"fmt"
-	"github.com/BrunoRoese/socket/pkg/server"
-	"strings"
+	"net"
 )
 
 type Heartbeat struct{}
@@ -12,18 +11,16 @@ func (h *Heartbeat) Name() string {
 	return "HEARTBEAT"
 }
 
-func (h *Heartbeat) BuildRequest(headers map[string]string, body string) string {
-	var builder strings.Builder
-	udpAddr := server.GetServer().UdpAddr
-
-	builder.WriteString(fmt.Sprintf("Method: %s\n", h.Name()))
-	builder.WriteString(fmt.Sprintf("Source: %s:%s", udpAddr.IP.String(), udpAddr.Port))
-
-	for k, v := range headers {
-		builder.WriteString(fmt.Sprintf("\n%s: %s", k, v))
+func (h *Heartbeat) BuildRequest(headers map[string]string, body string, source net.UDPAddr) Request {
+	return Request{
+		Information: Information{
+			Method: h.Name(),
+			Source: fmt.Sprintf("%s:%d", source.IP.String(), source.Port),
+		},
+		Headers: Header{
+			XHeader:     headers,
+			ContentType: "text/plain",
+		},
+		Body: body,
 	}
-
-	builder.WriteString(body)
-
-	return builder.String()
 }

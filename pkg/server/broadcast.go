@@ -1,8 +1,11 @@
 package server
 
 import (
+	"encoding/json"
+	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/BrunoRoese/socket/pkg/command"
 	"github.com/BrunoRoese/socket/pkg/network"
+	"github.com/BrunoRoese/socket/pkg/protocol"
 	"log/slog"
 	"regexp"
 	"time"
@@ -18,15 +21,58 @@ func Broadcast() {
 	ticker := time.NewTicker(network.GetUdpTimeout())
 	defer ticker.Stop()
 
+	err := discover()
+
+	if err != nil {
+		slog.Error("Error discovering IPs", slog.String("error", err.Error()))
+	}
+
+	ipNumberOfErrorsMap := map[string]int{}
+
 	for range ticker.C {
-		err := broadcast()
-		if err == nil {
-			slog.Info("Broadcast successful", slog.String("message", defaultBroadcastMessage))
+		broadcast(ipNumberOfErrorsMap)
+	}
+}
+
+func broadcast(ipNumberOfErrorsMap map[string]int) {
+	slog.Info("Broadcasting to discovered IPs")
+
+	clientService := client.GetClientService()
+
+	for _, client := range clientService.ClientList {
+		heartbeat := protocol.Heartbeat{}
+		request := heartbeat.BuildRequest(nil, "", instance.UdpAddr)
+
+		slog.Info("Sending heartbeat to", slog.String("ip", client.Ip))
+
+		jsonRequest, err := json.Marshal(request)
+
+		if err != nil {
+			slog.Info("Error marshalling request", slog.String("error", err.Error()))
+			continue
+		}
+
+		slog.Info("Heartbeat request", slog.String("request", string(jsonRequest)))
+		_, err = network.SendRequest(client.Ip, client.Port, jsonRequest)
+
+		if err != nil {
+			ipNumberOfErrorsMap[client.Ip]++
+		} else {
+			ipNumberOfErrorsMap[client.Ip] = 0
+		}
+
+		if ipNumberOfErrorsMap[client.Ip] > 4 {
+			for i, existingClient := range clientService.ClientList {
+				if existingClient.Ip == client.Ip {
+					clientService.ClientList = append(clientService.ClientList[:i], clientService.ClientList[i+1:]...)
+					break
+				}
+			}
 		}
 	}
 }
 
-func broadcast() error {
+func discover() error {
 	slog.Info("Broadcasting to all IPs")
 
 	output, err := command.HandleCommand("arp", "-a")
