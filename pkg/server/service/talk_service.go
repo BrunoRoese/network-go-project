@@ -28,7 +28,7 @@ func Talk(ip string, message string) {
 		return
 	}
 
-	serverUdpAddr := net.UDPAddr{IP: net.IP(ip), Port: 8080}
+	serverUdpAddr := net.UDPAddr{IP: net.ParseIP(ip), Port: 8080}
 
 	talk := protocol.Talk{}
 
