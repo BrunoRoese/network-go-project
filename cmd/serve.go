@@ -3,10 +3,9 @@ package cmd
 import (
 	"github.com/BrunoRoese/socket/pkg/server"
 	"github.com/BrunoRoese/socket/pkg/server/service"
+	"github.com/spf13/cobra"
 	"log/slog"
 	"os"
-
-	"github.com/spf13/cobra"
 )
 
 var (
