@@ -98,7 +98,7 @@ func (c *Service) RemoveClientByIP(ip string) error {
 func (c *Service) GetClientByIP(ip string) *Client {
 	for _, client := range c.ClientList {
 		if client.Ip == ip {
-			slog.Info("Client found, sending message")
+			slog.Info("Client found")
 			return client
 		}
 	}
