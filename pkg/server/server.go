@@ -44,7 +44,7 @@ func (s *Server) StartListeningRoutine() {
 		for {
 			slog.Info("Waiting for message")
 			buffer := make([]byte, 1024)
-			_, addr, err := s.Conn.ReadFromUDP(buffer)
+			n, addr, err := s.Conn.ReadFromUDP(buffer)
 
 			if err != nil {
 				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
@@ -54,9 +54,7 @@ func (s *Server) StartListeningRoutine() {
 			for _, client := range s.ClientService.ClientList {
 				if client.Ip == addr.IP.String() {
 					slog.Info("Client already exists", slog.String("client", client.Ip))
-					//ack := protocol.ACK{}
-					//
-					//ack.BuildRequest(nil, "", s.UdpAddr)
+					slog.Info("Message", slog.String("message", string(buffer[:n])))
 					continue
 				}
 			}
@@ -74,6 +72,15 @@ func (s *Server) StartListeningRoutine() {
 		}
 	}()
 }
+
+//func (s *Server) ackResponse(clientList []*client.Client) {
+//	for _, client := range clientList {
+//		if client.Ip == addr.IP.String() {
+//			slog.Info("Client already exists", slog.String("client", client.Ip))
+//			continue
+//		}
+//	}
+//}
 
 func (s *Server) Close() {
 	if err := s.Conn.Close(); err != nil {

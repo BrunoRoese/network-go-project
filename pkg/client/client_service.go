@@ -70,6 +70,7 @@ func (c *Service) LoadFromFile() error {
 		return err
 	}
 
+	slog.Info("Clients loaded from file", "clients", clients)
 	c.ClientList = clients
 	return nil
 }
@@ -91,6 +92,17 @@ func (c *Service) RemoveClientByIP(ip string) error {
 	}
 
 	slog.Info("Client not found", slog.String("ip", ip))
+	return nil
+}
+
+func (c *Service) GetClientByIP(ip string) *Client {
+	for _, client := range c.ClientList {
+		if client.Ip == ip {
+			slog.Info("Client found, sending message")
+			return client
+		}
+	}
+
 	return nil
 }
 

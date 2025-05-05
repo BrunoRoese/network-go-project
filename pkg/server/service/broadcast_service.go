@@ -22,7 +22,7 @@ func Broadcast() {
 	ticker := time.NewTicker(network.GetUdpTimeout())
 	defer ticker.Stop()
 
-	err := discover()
+	err := Discover()
 
 	if err != nil {
 		slog.Error("Error discovering IPs", slog.String("error", err.Error()))
@@ -33,6 +33,31 @@ func Broadcast() {
 	for range ticker.C {
 		broadcast(ipNumberOfErrorsMap)
 	}
+}
+
+func Discover() error {
+	slog.Info("Broadcasting to all IPs")
+
+	output, err := command.HandleCommand("arp", "-a")
+
+	if err != nil {
+		slog.Error("Error executing command", slog.String("error", err.Error()))
+		return err
+	}
+
+	listOfIps := extractIPs(output)
+
+	for _, ip := range listOfIps {
+		slog.Info("Sending broadcast to", slog.String("ip", ip))
+		_, err := network.SendRequest(ip, defaultBroadcastPort, []byte(defaultBroadcastMessage))
+
+		if err != nil {
+			//slog.Error("Error sending broadcast", slog.String("ip", ip), slog.String("error", err.Error()))
+			continue
+		}
+	}
+
+	return nil
 }
 
 func broadcast(ipNumberOfErrorsMap map[string]int) {
@@ -72,31 +97,6 @@ func broadcast(ipNumberOfErrorsMap map[string]int) {
 			}
 		}
 	}
-}
-
-func discover() error {
-	slog.Info("Broadcasting to all IPs")
-
-	output, err := command.HandleCommand("arp", "-a")
-
-	if err != nil {
-		slog.Error("Error executing command", slog.String("error", err.Error()))
-		return err
-	}
-
-	listOfIps := extractIPs(output)
-
-	for _, ip := range listOfIps {
-		slog.Info("Sending broadcast to", slog.String("ip", ip))
-		_, err := network.SendRequest(ip, defaultBroadcastPort, []byte(defaultBroadcastMessage))
-
-		if err != nil {
-			//slog.Error("Error sending broadcast", slog.String("ip", ip), slog.String("error", err.Error()))
-			continue
-		}
-	}
-
-	return nil
 }
 
 func extractIPs(arpData string) []string {

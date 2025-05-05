@@ -11,22 +11,24 @@ import (
 
 func Talk(ip string, message string) {
 	clientService := client.GetClientService()
-	var specifiedClient *client.Client
 
-	for _, client := range clientService.ClientList {
-		if client.Ip == ip {
-			slog.Info("Client found, sending message")
-			specifiedClient = client
-			break
+	if clientService.ClientList == nil || len(clientService.ClientList) == 0 {
+		err := Discover()
+
+		if err != nil {
+			slog.Error("Error discovering IPs", slog.String("error", err.Error()))
+			return
 		}
 	}
+
+	specifiedClient := clientService.GetClientByIP(ip)
 
 	if specifiedClient == nil {
 		slog.Error("Client not found, stopping")
 		return
 	}
 
-	serverUdpAddr := net.UDPAddr{IP: net.IP("192.168.0.11"), Port: 8080}
+	serverUdpAddr := net.UDPAddr{IP: net.IP(ip), Port: 8080}
 
 	talk := protocol.Talk{}
 
