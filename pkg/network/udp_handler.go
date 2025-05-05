@@ -29,12 +29,12 @@ func SendRequest(ip string, port int, data []byte) (string, error) {
 	}
 
 	buffer := make([]byte, 1024)
-	n, _, err := conn.ReadFromUDP(buffer)
+	_, _, err = conn.ReadFromUDP(buffer)
 	if err != nil {
 		return "", err
 	}
 
-	return string(buffer[:n]), nil
+	return "", nil
 }
 
 func GetUdpTimeout() time.Duration {

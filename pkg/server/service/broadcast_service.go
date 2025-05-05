@@ -86,27 +86,33 @@ func discover() error {
 	listOfIps := extractIPs(output)
 
 	for _, ip := range listOfIps {
-		response, err := network.SendRequest(ip, defaultBroadcastPort, []byte(defaultBroadcastMessage))
+		slog.Info("Sending broadcast to", slog.String("ip", ip))
+		_, err := network.SendRequest(ip, defaultBroadcastPort, []byte(defaultBroadcastMessage))
 
 		if err != nil {
 			//slog.Error("Error sending broadcast", slog.String("ip", ip), slog.String("error", err.Error()))
 			continue
 		}
-
-		slog.Info("Response from IP", slog.String("ip", ip), slog.String("response", response))
 	}
 
 	return nil
 }
 
 func extractIPs(arpData string) []string {
-	re := regexp.MustCompile(`\((\d+\.\d+\.\d+\.\d+)\)`)
+	slog.Info("ARP Data", slog.String("data", arpData))
 
-	matches := re.FindAllStringSubmatch(arpData, -1)
+	re := regexp.MustCompile(`\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b`)
+
+	matches := re.FindAllString(arpData, -1)
+
+	ipSet := make(map[string]struct{})
+	for _, ip := range matches {
+		ipSet[ip] = struct{}{}
+	}
 
 	var ips []string
-	for _, match := range matches {
-		ips = append(ips, match[1])
+	for ip := range ipSet {
+		ips = append(ips, ip)
 	}
 
 	return ips

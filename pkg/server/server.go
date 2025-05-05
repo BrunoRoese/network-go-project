@@ -44,7 +44,7 @@ func (s *Server) StartListeningRoutine() {
 		for {
 			slog.Info("Waiting for message")
 			buffer := make([]byte, 1024)
-			n, addr, err := s.Conn.ReadFromUDP(buffer)
+			_, addr, err := s.Conn.ReadFromUDP(buffer)
 
 			if err != nil {
 				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
@@ -56,7 +56,13 @@ func (s *Server) StartListeningRoutine() {
 			slog.Info("Client", newClient)
 
 			s.ClientService.AddClient(newClient)
-			slog.Info("Received message", slog.String("message", string(buffer[:n])), slog.String("from", addr.String()))
+
+			_, err = s.Conn.WriteToUDP([]byte("Hello, world!"), addr)
+			if err != nil {
+				return
+			}
+
+			slog.Info("Received message", slog.String("from", addr.String()))
 		}
 	}()
 }
