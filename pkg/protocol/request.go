@@ -2,11 +2,13 @@ package protocol
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"strings"
 )
 
 type Information struct {
 	Method string
+	Id     uuid.UUID
 	Source string
 }
 

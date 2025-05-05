@@ -1,4 +1,4 @@
-package server
+package service
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"github.com/BrunoRoese/socket/pkg/command"
 	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
+	"github.com/BrunoRoese/socket/pkg/server"
 	"log/slog"
 	"regexp"
 	"time"
@@ -41,7 +42,7 @@ func broadcast(ipNumberOfErrorsMap map[string]int) {
 
 	for _, client := range clientService.ClientList {
 		heartbeat := protocol.Heartbeat{}
-		request := heartbeat.BuildRequest(nil, "", instance.UdpAddr)
+		request := heartbeat.BuildRequest(nil, "", server.Instance.UdpAddr)
 
 		slog.Info("Sending heartbeat to", slog.String("ip", client.Ip))
 

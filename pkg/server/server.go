@@ -12,7 +12,7 @@ type Server struct {
 	ClientService *client.ClientService
 }
 
-var instance *Server
+var Instance *Server
 
 func Init(ip string, port int) (*Server, error) {
 	var newServer Server
@@ -30,7 +30,7 @@ func Init(ip string, port int) (*Server, error) {
 
 	newServer.Conn = conn
 
-	instance = &newServer
+	Instance = &newServer
 
 	newServer.ClientService = client.GetClientService()
 

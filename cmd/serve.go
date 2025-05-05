@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/BrunoRoese/socket/pkg/server"
+	"github.com/BrunoRoese/socket/pkg/server/service"
 	"log/slog"
 	"os"
 
@@ -33,7 +34,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	slog.Info("Broadcasting to all IPs")
 
-	server.Broadcast()
+	service.Broadcast()
 
 	<-shutdown
 
