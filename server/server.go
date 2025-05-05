@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/BrunoRoese/socket/client"
 	"log/slog"
 	"net"
 )
@@ -32,6 +33,8 @@ func Init(ip string, port int) (*Server, error) {
 }
 
 func (s *Server) StartListeningRoutine() {
+	clientService := client.NewClientService("clients.json")
+
 	go func() {
 		for {
 			slog.Info("Waiting for message")
@@ -43,6 +46,9 @@ func (s *Server) StartListeningRoutine() {
 				continue
 			}
 
+			newClient := client.CreateClient(string(addr.IP), addr.Port)
+
+			clientService.AddClient(newClient)
 			slog.Info("Received message", slog.String("message", string(buffer[:n])), slog.String("from", addr.String()))
 		}
 	}()
