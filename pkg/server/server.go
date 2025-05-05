@@ -51,9 +51,17 @@ func (s *Server) StartListeningRoutine() {
 				continue
 			}
 
-			newClient := &client.Client{Ip: addr.IP.String(), Port: addr.Port}
+			for _, client := range s.ClientService.ClientList {
+				if client.Ip == addr.IP.String() {
+					slog.Info("Client already exists", slog.String("client", client.Ip))
+					//ack := protocol.ACK{}
+					//
+					//ack.BuildRequest(nil, "", s.UdpAddr)
+					continue
+				}
+			}
 
-			slog.Info("Client", "newClient in server", newClient)
+			newClient := &client.Client{Ip: addr.IP.String(), Port: addr.Port}
 
 			s.ClientService.AddClient(newClient)
 
