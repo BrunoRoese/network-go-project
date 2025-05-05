@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/BrunoRoese/socket/cmd"
-	"github.com/BrunoRoese/socket/server"
+	"github.com/BrunoRoese/socket/pkg/server"
 )
 
 var udpServer *server.Server

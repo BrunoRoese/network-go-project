@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/BrunoRoese/socket/command"
-	"github.com/BrunoRoese/socket/network"
+	"github.com/BrunoRoese/socket/pkg/command"
+	"github.com/BrunoRoese/socket/pkg/network"
 	"log/slog"
 	"regexp"
 	"time"

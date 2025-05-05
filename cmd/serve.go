@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/BrunoRoese/socket/server"
+	"github.com/BrunoRoese/socket/pkg/server"
 	"log/slog"
 	"os"
 

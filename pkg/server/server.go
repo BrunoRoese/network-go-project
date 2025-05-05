@@ -1,14 +1,15 @@
 package server
 
 import (
-	"github.com/BrunoRoese/socket/client"
+	"github.com/BrunoRoese/socket/pkg/client"
 	"log/slog"
 	"net"
 )
 
 type Server struct {
-	udpAddr net.UDPAddr
-	conn    *net.UDPConn
+	udpAddr       net.UDPAddr
+	conn          *net.UDPConn
+	clientService *client.ClientService
 }
 
 func Init(ip string, port int) (*Server, error) {
@@ -27,14 +28,14 @@ func Init(ip string, port int) (*Server, error) {
 
 	newServer.conn = conn
 
+	newServer.clientService = &client.ClientService{ClientList: make([]*client.Client, 0), FilePath: "resources/clients.json"}
+
 	slog.Info("Server started", slog.String("ip", ip), slog.Int("port", port))
 
 	return &newServer, nil
 }
 
 func (s *Server) StartListeningRoutine() {
-	clientService := client.NewClientService("clients.json")
-
 	go func() {
 		for {
 			slog.Info("Waiting for message")
@@ -46,9 +47,11 @@ func (s *Server) StartListeningRoutine() {
 				continue
 			}
 
-			newClient := client.CreateClient(string(addr.IP), addr.Port)
+			newClient := &client.Client{Ip: addr.IP.String(), Port: addr.Port}
 
-			clientService.AddClient(newClient)
+			slog.Info("Client", newClient)
+
+			s.clientService.AddClient(newClient)
 			slog.Info("Received message", slog.String("message", string(buffer[:n])), slog.String("from", addr.String()))
 		}
 	}()
