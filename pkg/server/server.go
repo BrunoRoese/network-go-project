@@ -28,7 +28,7 @@ func Init(ip string, port int) (*Server, error) {
 
 	newServer.conn = conn
 
-	newServer.clientService = &client.ClientService{ClientList: make([]*client.Client, 0), FilePath: "resources/clients.json"}
+	newServer.clientService = client.GetClientService("resources/clients.json")
 
 	slog.Info("Server started", slog.String("ip", ip), slog.Int("port", port))
 
