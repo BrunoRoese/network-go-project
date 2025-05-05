@@ -38,5 +38,5 @@ func SendRequest(ip string, port int, data []byte) (string, error) {
 }
 
 func GetUdpTimeout() time.Duration {
-	return 1 * time.Second
+	return 10 * time.Second
 }

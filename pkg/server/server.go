@@ -7,28 +7,36 @@ import (
 )
 
 type Server struct {
-	udpAddr       net.UDPAddr
-	conn          *net.UDPConn
-	clientService *client.ClientService
+	UdpAddr       net.UDPAddr
+	Conn          *net.UDPConn
+	ClientService *client.ClientService
+}
+
+var instance *Server
+
+func GetServer() *Server {
+	return instance
 }
 
 func Init(ip string, port int) (*Server, error) {
 	var newServer Server
 
-	newServer.udpAddr = net.UDPAddr{IP: net.ParseIP(ip), Port: port}
+	newServer.UdpAddr = net.UDPAddr{IP: net.ParseIP(ip), Port: port}
 
 	slog.Info("Server initiating...", slog.String("ip", ip), slog.Int("port", port))
 
-	conn, err := net.ListenUDP("udp", &newServer.udpAddr)
+	conn, err := net.ListenUDP("udp", &newServer.UdpAddr)
 
 	if err != nil {
 		slog.Error("Error starting server", slog.String("ip", ip), slog.Int("port", port), slog.String("error", err.Error()))
 		return nil, err
 	}
 
-	newServer.conn = conn
+	newServer.Conn = conn
 
-	newServer.clientService = client.GetClientService("resources/clients.json")
+	instance = &newServer
+
+	newServer.ClientService = client.GetClientService("resources/clients.json")
 
 	slog.Info("Server started", slog.String("ip", ip), slog.Int("port", port))
 
@@ -40,7 +48,7 @@ func (s *Server) StartListeningRoutine() {
 		for {
 			slog.Info("Waiting for message")
 			buffer := make([]byte, 1024)
-			n, addr, err := s.conn.ReadFromUDP(buffer)
+			n, addr, err := s.Conn.ReadFromUDP(buffer)
 
 			if err != nil {
 				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
@@ -51,14 +59,14 @@ func (s *Server) StartListeningRoutine() {
 
 			slog.Info("Client", newClient)
 
-			s.clientService.AddClient(newClient)
+			s.ClientService.AddClient(newClient)
 			slog.Info("Received message", slog.String("message", string(buffer[:n])), slog.String("from", addr.String()))
 		}
 	}()
 }
 
 func (s *Server) Close() {
-	if err := s.conn.Close(); err != nil {
+	if err := s.Conn.Close(); err != nil {
 		slog.Error("Error closing UDP connection", slog.String("error", err.Error()))
 	}
 	slog.Info("Server closed")
