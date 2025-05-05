@@ -9,7 +9,7 @@ import (
 type Server struct {
 	UdpAddr       net.UDPAddr
 	Conn          *net.UDPConn
-	ClientService *client.ClientService
+	ClientService *client.Service
 }
 
 var Instance *Server
@@ -53,7 +53,7 @@ func (s *Server) StartListeningRoutine() {
 
 			newClient := &client.Client{Ip: addr.IP.String(), Port: addr.Port}
 
-			slog.Info("Client", newClient)
+			slog.Info("Client", "newClient in server", newClient)
 
 			s.ClientService.AddClient(newClient)
 

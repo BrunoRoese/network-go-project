@@ -7,23 +7,23 @@ import (
 	"sync"
 )
 
-type ClientService struct {
+type Service struct {
 	ClientList []*Client
 	FilePath   string
 }
 
 var (
-	instance *ClientService
+	instance *Service
 	once     sync.Once
 )
 
-func GetClientService() *ClientService {
+func GetClientService() *Service {
 	return getClientService("resources/clients.json")
 }
 
-func getClientService(filePath string) *ClientService {
+func getClientService(filePath string) *Service {
 	once.Do(func() {
-		instance = &ClientService{
+		instance = &Service{
 			ClientList: []*Client{},
 			FilePath:   filePath,
 		}
@@ -33,7 +33,7 @@ func getClientService(filePath string) *ClientService {
 	return instance
 }
 
-func (c *ClientService) AddClient(client *Client) {
+func (c *Service) AddClient(client *Client) {
 	for _, fromList := range c.ClientList {
 		if fromList.Ip == client.Ip {
 			slog.Info("Client already registered, skipping")
@@ -54,7 +54,7 @@ func (c *ClientService) AddClient(client *Client) {
 	}
 }
 
-func (c *ClientService) LoadFromFile() error {
+func (c *Service) LoadFromFile() error {
 	data, err := os.ReadFile(c.FilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -74,7 +74,7 @@ func (c *ClientService) LoadFromFile() error {
 	return nil
 }
 
-func (c *ClientService) RemoveClientByIP(ip string) error {
+func (c *Service) RemoveClientByIP(ip string) error {
 	for i, client := range c.ClientList {
 		if client.Ip == ip {
 			c.ClientList = append(c.ClientList[:i], c.ClientList[i+1:]...)
@@ -94,7 +94,7 @@ func (c *ClientService) RemoveClientByIP(ip string) error {
 	return nil
 }
 
-func (c *ClientService) saveToFile() error {
+func (c *Service) saveToFile() error {
 	_, err := os.Stat(c.FilePath)
 
 	var file *os.File

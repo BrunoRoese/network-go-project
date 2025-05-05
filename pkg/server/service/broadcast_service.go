@@ -54,7 +54,7 @@ func broadcast(ipNumberOfErrorsMap map[string]int) {
 		}
 
 		slog.Info("Heartbeat request", slog.String("request", string(jsonRequest)))
-		_, err = network.SendRequest(client.Ip, client.Port, jsonRequest)
+		_, err = network.SendRequest(client.Ip, 8080, jsonRequest)
 
 		if err != nil {
 			ipNumberOfErrorsMap[client.Ip]++
@@ -63,11 +63,12 @@ func broadcast(ipNumberOfErrorsMap map[string]int) {
 		}
 
 		if ipNumberOfErrorsMap[client.Ip] > 4 {
-			for i, existingClient := range clientService.ClientList {
-				if existingClient.Ip == client.Ip {
-					clientService.ClientList = append(clientService.ClientList[:i], clientService.ClientList[i+1:]...)
-					break
-				}
+			err = clientService.RemoveClientByIP(client.Ip)
+
+			if err != nil {
+				slog.Error("Error removing client", slog.String("ip", client.Ip), slog.String("error", err.Error()))
+			} else {
+				slog.Info("Client removed", slog.String("ip", client.Ip))
 			}
 		}
 	}
@@ -99,8 +100,6 @@ func discover() error {
 }
 
 func extractIPs(arpData string) []string {
-	slog.Info("ARP Data", slog.String("data", arpData))
-
 	re := regexp.MustCompile(`\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b`)
 
 	matches := re.FindAllString(arpData, -1)
