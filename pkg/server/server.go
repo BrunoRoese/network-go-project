@@ -1,7 +1,10 @@
 package server
 
 import (
+	"encoding/json"
 	"github.com/BrunoRoese/socket/pkg/client"
+	"github.com/BrunoRoese/socket/pkg/protocol"
+	"log"
 	"log/slog"
 	"net"
 )
@@ -63,7 +66,14 @@ func (s *Server) StartListeningRoutine() {
 				slog.Info("Client found in client list", slog.String("ip", addr.IP.String()))
 			}
 
-			slog.Info("Received message", slog.String("from", addr.String()))
+			req, err := parseRequest(buffer[:n])
+
+			if err != nil {
+				slog.Error("Error parsing request", slog.String("error", err.Error()))
+				continue
+			}
+
+			slog.Info("Received message", slog.String("from", addr.String()), slog.String("request", req.String()))
 		}
 	}()
 }
@@ -73,4 +83,16 @@ func (s *Server) Close() {
 		slog.Error("Error closing UDP connection", slog.String("error", err.Error()))
 	}
 	slog.Info("Server closed")
+}
+
+func parseRequest(n []byte) (*protocol.Request, error) {
+	var req protocol.Request
+
+	err := json.Unmarshal(n, &req)
+	if err != nil {
+		log.Printf("Error parsing request: %v", err)
+		return nil, err
+	}
+
+	return &req, nil
 }
