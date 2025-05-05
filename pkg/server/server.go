@@ -51,36 +51,22 @@ func (s *Server) StartListeningRoutine() {
 				continue
 			}
 
-			for _, client := range s.ClientService.ClientList {
-				if client.Ip == addr.IP.String() {
-					slog.Info("Client already exists", slog.String("client", client.Ip))
-					slog.Info("Message", slog.String("message", string(buffer[:n])))
-					continue
-				}
-			}
+			foundClient := s.ClientService.GetClientByIP(addr.IP.String())
 
-			newClient := &client.Client{Ip: addr.IP.String(), Port: addr.Port}
+			if foundClient == nil {
+				slog.Info("Client not found, adding to client list", slog.String("ip", addr.IP.String()))
 
-			s.ClientService.AddClient(newClient)
+				newClient := &client.Client{Ip: addr.IP.String(), Port: addr.Port}
 
-			_, err = s.Conn.WriteToUDP([]byte("Hello, world!"), addr)
-			if err != nil {
-				return
+				s.ClientService.AddClient(newClient)
+			} else {
+				slog.Info("Client found in client list", slog.String("ip", addr.IP.String()))
 			}
 
 			slog.Info("Received message", slog.String("from", addr.String()))
 		}
 	}()
 }
-
-//func (s *Server) ackResponse(clientList []*client.Client) {
-//	for _, client := range clientList {
-//		if client.Ip == addr.IP.String() {
-//			slog.Info("Client already exists", slog.String("client", client.Ip))
-//			continue
-//		}
-//	}
-//}
 
 func (s *Server) Close() {
 	if err := s.Conn.Close(); err != nil {
