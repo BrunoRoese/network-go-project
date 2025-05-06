@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/server"
 	"github.com/BrunoRoese/socket/pkg/server/service"
 	"github.com/spf13/cobra"
@@ -9,8 +10,6 @@ import (
 )
 
 var (
-	ip string
-
 	udpServer *server.Server
 
 	serveCmd = &cobra.Command{
@@ -23,8 +22,9 @@ var (
 
 func run(cmd *cobra.Command, args []string) {
 	shutdown := make(chan os.Signal, 1)
+	ip, err := network.GetLocalIp()
 
-	if ip == "" {
+	if err != nil {
 		slog.Error("IP address not provided")
 		os.Exit(1)
 	}
@@ -56,13 +56,5 @@ func startUpServer(ip string, port int) {
 }
 
 func init() {
-	serveCmd.PersistentFlags().StringVar(&ip, "ip", "", "Your network IP address")
-	err := serveCmd.MarkPersistentFlagRequired("ip")
-
 	rootCmd.AddCommand(serveCmd)
-
-	if err != nil {
-		slog.Error("Error marking flag as required", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
 }
