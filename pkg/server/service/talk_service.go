@@ -48,7 +48,7 @@ func Talk(ip string, message string) {
 		return
 	}
 
-	_, err = network.SendRequest(ip, 8080, jsonRequest)
+	_, err = network.SendRequest(ip, specifiedClient.Port, jsonRequest)
 
 	if err != nil {
 		slog.Error("Error sending request", slog.String("ip", ip), slog.String("error", err.Error()))

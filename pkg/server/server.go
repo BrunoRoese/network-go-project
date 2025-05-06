@@ -59,7 +59,7 @@ func (s *Server) StartListeningRoutine() {
 			if foundClient == nil {
 				slog.Info("Client not found, adding to client list", slog.String("ip", addr.IP.String()))
 
-				newClient := &client.Client{Ip: addr.IP.String(), Port: addr.Port}
+				newClient := &client.Client{Ip: addr.IP.String(), Port: 8080}
 
 				s.ClientService.AddClient(newClient)
 			} else {
