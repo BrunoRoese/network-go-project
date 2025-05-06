@@ -2,11 +2,14 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"log"
 	"log/slog"
 	"net"
+	"strconv"
+	"strings"
 )
 
 type Server struct {
@@ -55,22 +58,28 @@ func (s *Server) StartListeningRoutine() {
 			}
 
 			foundClient := s.ClientService.GetClientByIP(addr.IP.String())
-
-			if foundClient == nil {
-				slog.Info("Client not found, adding to client list", slog.String("ip", addr.IP.String()))
-
-				newClient := &client.Client{Ip: addr.IP.String(), Port: 8080}
-
-				s.ClientService.AddClient(newClient)
-			} else {
-				slog.Info("Client found in client list", slog.String("ip", addr.IP.String()))
-			}
-
 			req, err := parseRequest(buffer[:n])
 
 			if err != nil {
 				slog.Error("Error parsing request", slog.String("error", err.Error()))
 				continue
+			}
+
+			if foundClient == nil {
+				slog.Info("Client not found, adding to client list", slog.String("ip", addr.IP.String()))
+
+				ip, port, err := getSourceParts(req.Information.Source)
+
+				if err != nil {
+					slog.Error("Error getting source parts", slog.String("error", err.Error()))
+					continue
+				}
+
+				newClient := &client.Client{Ip: ip, Port: port}
+
+				s.ClientService.AddClient(newClient)
+			} else {
+				slog.Info("Client found in client list", slog.String("ip", addr.IP.String()))
 			}
 
 			slog.Info("Received message", slog.String("from", addr.String()), slog.String("request", req.String()))
@@ -83,6 +92,21 @@ func (s *Server) Close() {
 		slog.Error("Error closing UDP connection", slog.String("error", err.Error()))
 	}
 	slog.Info("Server closed")
+}
+
+func getSourceParts(source string) (string, int, error) {
+	parts := strings.Split(source, ":")
+	if len(parts) != 2 {
+		return "", 0, fmt.Errorf("invalid source format: %s", source)
+	}
+
+	ip := parts[0]
+	port, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return "", 0, fmt.Errorf("invalid port: %s", parts[1])
+	}
+
+	return ip, port, nil
 }
 
 func parseRequest(n []byte) (*protocol.Request, error) {
