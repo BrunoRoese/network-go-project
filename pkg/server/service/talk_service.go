@@ -28,7 +28,7 @@ func Talk(ip string, message string) {
 		return
 	}
 
-	localIp, err := getLocalIP()
+	localIp, err := network.GetLocalIp()
 
 	if err != nil {
 		slog.Error("Error getting local IP", slog.String("error", err.Error()))
@@ -56,15 +56,4 @@ func Talk(ip string, message string) {
 	}
 
 	slog.Info("Request sent!", "Request", string(jsonRequest))
-}
-
-func getLocalIP() (string, error) {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP.String(), nil
 }
