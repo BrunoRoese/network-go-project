@@ -6,6 +6,7 @@ import (
 	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
+	"github.com/BrunoRoese/socket/pkg/server/handler"
 	"log/slog"
 	"net"
 )
@@ -74,7 +75,7 @@ func (s *Server) StartListeningRoutine() {
 				slog.Info("Client found in client list", slog.String("ip", addr.IP.String()))
 			}
 
-			reqFunc := GetRequestType(req)
+			reqFunc := handler.GetRequestType(req)
 
 			reqFunc(req)
 
