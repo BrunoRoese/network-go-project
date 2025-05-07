@@ -33,19 +33,19 @@ func IncrementByIp(ip string) {
 
 	if requestsMap[ip] > 4 {
 		delete(requestsMap, ip)
+
+		clientService := client.GetClientService()
+
+		err := clientService.RemoveClientByIP(ip)
+
+		if err != nil {
+			slog.Error("Error removing client by IP, rolling back", slog.String("ip", ip), slog.String("error", err.Error()))
+
+			requestsMap[ip] = 5
+		} else {
+			slog.Info("Client removed successfully", slog.String("ip", ip))
+		}
 	} else {
 		slog.Info("Incremented request count", slog.String("ip", ip), slog.Int("count", requestsMap[ip]))
-	}
-
-	clientService := client.GetClientService()
-
-	err := clientService.RemoveClientByIP(ip)
-
-	if err != nil {
-		slog.Error("Error removing client by IP, rolling back", slog.String("ip", ip), slog.String("error", err.Error()))
-
-		requestsMap[ip] = 5
-	} else {
-		slog.Info("Client removed successfully", slog.String("ip", ip))
 	}
 }

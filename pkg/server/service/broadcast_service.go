@@ -7,6 +7,7 @@ import (
 	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/server"
+	"github.com/BrunoRoese/socket/pkg/server/handler"
 	"log/slog"
 	"regexp"
 	"time"
@@ -28,10 +29,8 @@ func Broadcast() {
 		slog.Error("Error discovering IPs", slog.String("error", err.Error()))
 	}
 
-	ipNumberOfErrorsMap := map[string]int{}
-
 	for range ticker.C {
-		broadcast(ipNumberOfErrorsMap)
+		broadcast()
 	}
 }
 
@@ -60,7 +59,7 @@ func Discover() error {
 	return nil
 }
 
-func broadcast(ipNumberOfErrorsMap map[string]int) {
+func broadcast() {
 	slog.Info("Broadcasting to discovered IPs")
 
 	clientService := client.GetClientService()
@@ -81,21 +80,7 @@ func broadcast(ipNumberOfErrorsMap map[string]int) {
 		slog.Info("Heartbeat request", slog.String("request", string(jsonRequest)))
 		_, err = network.SendRequest(c.Ip, 8080, jsonRequest)
 
-		if err != nil {
-			ipNumberOfErrorsMap[c.Ip]++
-		} else {
-			ipNumberOfErrorsMap[c.Ip] = 0
-		}
-
-		if ipNumberOfErrorsMap[c.Ip] > 4 {
-			err = clientService.RemoveClientByIP(c.Ip)
-
-			if err != nil {
-				slog.Error("Error removing c", slog.String("ip", c.Ip), slog.String("error", err.Error()))
-			} else {
-				slog.Info("Client removed", slog.String("ip", c.Ip))
-			}
-		}
+		handler.IncrementByIp(c.Ip)
 	}
 }
 
