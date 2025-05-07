@@ -9,7 +9,7 @@ func GetRequestType(req *protocol.Request) func(request *protocol.Request) {
 	case "ACK":
 		return HandleAckReq
 	case "HEARTBEAT":
-		return nil
+		return HandleHeartbeatReq
 	default:
 		return nil
 	}
