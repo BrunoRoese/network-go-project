@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/server"
@@ -20,26 +19,6 @@ func HandleAckReq(request *protocol.Request) {
 			return
 		}
 
-		handleCounter(ip)
+		server.ZeroByIp(ip)
 	}
-}
-
-func handleCounter(ip string) {
-	counter := server.GetByIp(ip)
-	clientServiceSingleton := client.GetClientService()
-
-	if counter > 4 {
-		err := clientServiceSingleton.RemoveClientByIP(ip)
-
-		if err != nil {
-			slog.Error("Error removing ip: ", slog.String("ip", ip), slog.String("error", err.Error()))
-			return
-		}
-
-		slog.Info("Ip deleted successfully", slog.String("ip", ip))
-		return
-	}
-
-	slog.Info("Incrementing by ip: ", slog.String("ip", ip))
-	server.IncrementByIp(ip)
 }
