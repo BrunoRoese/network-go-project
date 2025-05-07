@@ -1,9 +1,8 @@
-package handler
+package server
 
 import (
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
-	"github.com/BrunoRoese/socket/pkg/server"
 	"github.com/google/uuid"
 	"log/slog"
 )
@@ -19,6 +18,6 @@ func HandleAckReq(request *protocol.Request) {
 			return
 		}
 
-		server.ZeroByIp(ip)
+		ZeroByIp(ip)
 	}
 }

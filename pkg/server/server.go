@@ -74,6 +74,10 @@ func (s *Server) StartListeningRoutine() {
 				slog.Info("Client found in client list", slog.String("ip", addr.IP.String()))
 			}
 
+			reqFunc := GetRequestType(req)
+
+			reqFunc(req)
+
 			slog.Info("Received message", slog.String("from", addr.String()), slog.String("request", req.String()))
 		}
 	}()
