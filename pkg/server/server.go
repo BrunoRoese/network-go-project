@@ -1,7 +1,9 @@
 package server
 
 import (
+	"errors"
 	"github.com/BrunoRoese/socket/pkg/client"
+	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"log/slog"
@@ -88,6 +90,11 @@ func handleNewClient(s *Server, addr *net.UDPAddr, req *protocol.Request) error 
 	slog.Info("Client not found, adding to client list", slog.String("ip", addr.IP.String()))
 
 	ip, port, err := parser.ParseSource(req.Information.Source)
+
+	if ip, err = network.GetLocalIp(); ip == "" && err == nil {
+		slog.Info("Client is local, using local IP", slog.String("ip", ip))
+		return errors.New("client is local")
+	}
 
 	if err != nil {
 		slog.Error("Error getting source parts", slog.String("error", err.Error()))
