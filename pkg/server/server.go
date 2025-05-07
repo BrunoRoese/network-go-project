@@ -1,15 +1,11 @@
 package server
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/BrunoRoese/socket/pkg/protocol"
-	"log"
+	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"log/slog"
 	"net"
-	"strconv"
-	"strings"
 )
 
 type Server struct {
@@ -58,7 +54,7 @@ func (s *Server) StartListeningRoutine() {
 			}
 
 			foundClient := s.ClientService.GetClientByIP(addr.IP.String())
-			req, err := parseRequest(buffer[:n])
+			req, err := parser.ParseRequest(buffer[:n])
 
 			if err != nil {
 				slog.Error("Error parsing request", slog.String("error", err.Error()))
@@ -66,18 +62,12 @@ func (s *Server) StartListeningRoutine() {
 			}
 
 			if foundClient == nil {
-				slog.Info("Client not found, adding to client list", slog.String("ip", addr.IP.String()))
-
-				ip, port, err := getSourceParts(req.Information.Source)
+				err := handleNewClient(s, addr, req)
 
 				if err != nil {
-					slog.Error("Error getting source parts", slog.String("error", err.Error()))
+					slog.Error("Error handling new client", slog.String("error", err.Error()))
 					continue
 				}
-
-				newClient := &client.Client{Ip: ip, Port: port}
-
-				s.ClientService.AddClient(newClient)
 			} else {
 				slog.Info("Client found in client list", slog.String("ip", addr.IP.String()))
 			}
@@ -94,29 +84,19 @@ func (s *Server) Close() {
 	slog.Info("Server closed")
 }
 
-func getSourceParts(source string) (string, int, error) {
-	parts := strings.Split(source, ":")
-	if len(parts) != 2 {
-		return "", 0, fmt.Errorf("invalid source format: %s", source)
-	}
+func handleNewClient(s *Server, addr *net.UDPAddr, req *protocol.Request) error {
+	slog.Info("Client not found, adding to client list", slog.String("ip", addr.IP.String()))
 
-	ip := parts[0]
-	port, err := strconv.Atoi(parts[1])
+	ip, port, err := parser.ParseSource(req.Information.Source)
+
 	if err != nil {
-		return "", 0, fmt.Errorf("invalid port: %s", parts[1])
+		slog.Error("Error getting source parts", slog.String("error", err.Error()))
+		return err
 	}
 
-	return ip, port, nil
-}
+	newClient := &client.Client{Ip: ip, Port: port}
 
-func parseRequest(n []byte) (*protocol.Request, error) {
-	var req protocol.Request
+	s.ClientService.AddClient(newClient)
 
-	err := json.Unmarshal(n, &req)
-	if err != nil {
-		log.Printf("Error parsing request: %v", err)
-		return nil, err
-	}
-
-	return &req, nil
+	return nil
 }
