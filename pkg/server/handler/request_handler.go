@@ -2,13 +2,13 @@ package handler
 
 import "github.com/BrunoRoese/socket/pkg/protocol"
 
-func GetRequestType(req *protocol.Protocol) string {
+func GetRequestType(req *protocol.Protocol) func(request *protocol.Request) {
 	switch (*req).(type) {
 	case *protocol.ACK:
-		return "ACK"
+		return HandleAckReq
 	case *protocol.Heartbeat:
-		return "Heartbeat"
+		return nil
 	default:
-		return "Unknown"
+		return nil
 	}
 }
