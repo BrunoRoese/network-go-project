@@ -65,11 +65,11 @@ func broadcast(ipNumberOfErrorsMap map[string]int) {
 
 	clientService := client.GetClientService()
 
-	for _, client := range clientService.ClientList {
+	for _, c := range clientService.ClientList {
 		heartbeat := protocol.Heartbeat{}
 		request := heartbeat.BuildRequest(nil, "", server.Instance.UdpAddr)
 
-		slog.Info("Sending heartbeat to", slog.String("ip", client.Ip))
+		slog.Info("Sending heartbeat to", slog.String("ip", c.Ip))
 
 		jsonRequest, err := json.Marshal(request)
 
@@ -79,21 +79,21 @@ func broadcast(ipNumberOfErrorsMap map[string]int) {
 		}
 
 		slog.Info("Heartbeat request", slog.String("request", string(jsonRequest)))
-		_, err = network.SendRequest(client.Ip, 8080, jsonRequest)
+		_, err = network.SendRequest(c.Ip, 8080, jsonRequest)
 
 		if err != nil {
-			ipNumberOfErrorsMap[client.Ip]++
+			ipNumberOfErrorsMap[c.Ip]++
 		} else {
-			ipNumberOfErrorsMap[client.Ip] = 0
+			ipNumberOfErrorsMap[c.Ip] = 0
 		}
 
-		if ipNumberOfErrorsMap[client.Ip] > 4 {
-			err = clientService.RemoveClientByIP(client.Ip)
+		if ipNumberOfErrorsMap[c.Ip] > 4 {
+			err = clientService.RemoveClientByIP(c.Ip)
 
 			if err != nil {
-				slog.Error("Error removing client", slog.String("ip", client.Ip), slog.String("error", err.Error()))
+				slog.Error("Error removing c", slog.String("ip", c.Ip), slog.String("error", err.Error()))
 			} else {
-				slog.Info("Client removed", slog.String("ip", client.Ip))
+				slog.Info("Client removed", slog.String("ip", c.Ip))
 			}
 		}
 	}
