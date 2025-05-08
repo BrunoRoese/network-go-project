@@ -2,6 +2,10 @@ package client
 
 import (
 	"encoding/json"
+	"errors"
+	"github.com/BrunoRoese/socket/pkg/network"
+	"github.com/BrunoRoese/socket/pkg/protocol"
+	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"log/slog"
 	"os"
 	"sync"
@@ -102,6 +106,30 @@ func (c *Service) GetClientByIP(ip string) *Client {
 			return client
 		}
 	}
+
+	return nil
+}
+
+func (c *Service) HandleNewClient(req *protocol.Request) error {
+	slog.Info("Client not found, adding to client list")
+
+	ip, port, err := parser.ParseSource(req.Information.Source)
+
+	if ip, err = network.GetLocalIp(); ip == "" && err == nil {
+		slog.Info("Client is local, using local IP", slog.String("ip", ip))
+		return errors.New("client is local")
+	}
+
+	if err != nil {
+		slog.Error("Error getting source parts", slog.String("error", err.Error()))
+		return err
+	}
+
+	slog.Info("Parsed source", slog.String("ip", ip), slog.Int("port", port))
+
+	newClient := &Client{Ip: ip, Port: port}
+
+	c.AddClient(newClient)
 
 	return nil
 }

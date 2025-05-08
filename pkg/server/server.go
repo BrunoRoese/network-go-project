@@ -1,10 +1,7 @@
 package server
 
 import (
-	"errors"
 	"github.com/BrunoRoese/socket/pkg/client"
-	"github.com/BrunoRoese/socket/pkg/network"
-	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/server/handler"
 	"log/slog"
@@ -65,7 +62,7 @@ func (s *Server) StartListeningRoutine() {
 			}
 
 			if foundClient == nil {
-				err := handleNewClient(s, addr, req)
+				err := s.ClientService.HandleNewClient(req)
 
 				if err != nil {
 					slog.Error("Error handling new client", slog.String("error", err.Error()))
@@ -89,26 +86,4 @@ func (s *Server) Close() {
 		slog.Error("Error closing UDP connection", slog.String("error", err.Error()))
 	}
 	slog.Info("Server closed")
-}
-
-func handleNewClient(s *Server, addr *net.UDPAddr, req *protocol.Request) error {
-	slog.Info("Client not found, adding to client list", slog.String("ip", addr.IP.String()))
-
-	ip, port, err := parser.ParseSource(req.Information.Source)
-
-	if ip, err = network.GetLocalIp(); ip == "" && err == nil {
-		slog.Info("Client is local, using local IP", slog.String("ip", ip))
-		return errors.New("client is local")
-	}
-
-	if err != nil {
-		slog.Error("Error getting source parts", slog.String("error", err.Error()))
-		return err
-	}
-
-	newClient := &client.Client{Ip: ip, Port: port}
-
-	s.ClientService.AddClient(newClient)
-
-	return nil
 }
