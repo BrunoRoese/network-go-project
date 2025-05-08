@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var clientIp string
+
 var rootCmd = &cobra.Command{
 	Use:   "socket",
 	Short: "This is the socket application, start this and it will expose a port for the udp connection",
