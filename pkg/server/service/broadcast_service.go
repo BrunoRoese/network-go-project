@@ -29,6 +29,12 @@ func Broadcast() {
 		slog.Error("Error discovering IPs", slog.String("error", err.Error()))
 	}
 
+	if client.GetClientService().ClientList == nil || len(client.GetClientService().ClientList) == 0 {
+		slog.Info("No clients found, trying discover again")
+		<-ticker.C
+		Broadcast()
+	}
+
 	for range ticker.C {
 		broadcast()
 	}
