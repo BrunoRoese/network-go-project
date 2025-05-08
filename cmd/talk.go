@@ -1,17 +1,14 @@
 package cmd
 
 import (
-	"github.com/BrunoRoese/socket/pkg/server/service"
+	"github.com/BrunoRoese/socket/pkg/protocol/service"
 	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
-var (
-	clientIp string
-	talkMsg  string
-)
+var talkMsg string
 
 var talkCmd = &cobra.Command{
 	Use:   "talk",

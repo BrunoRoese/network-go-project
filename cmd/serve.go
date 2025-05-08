@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"github.com/BrunoRoese/socket/pkg/network"
+	"github.com/BrunoRoese/socket/pkg/protocol/service"
 	"github.com/BrunoRoese/socket/pkg/server"
-	"github.com/BrunoRoese/socket/pkg/server/service"
 	"github.com/spf13/cobra"
 	"log/slog"
 	"os"
