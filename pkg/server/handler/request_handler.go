@@ -11,6 +11,6 @@ func GetRequestType(req *protocol.Request) func(request *protocol.Request) {
 	case "HEARTBEAT":
 		return HandleHeartbeatReq
 	default:
-		return nil
+		return HandleDefaultReq
 	}
 }
