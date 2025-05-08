@@ -7,14 +7,6 @@ import (
 
 var requestsMap = make(map[string]int)
 
-func GetByIp(ip string) int {
-	if count, ok := requestsMap[ip]; ok {
-		return count
-	}
-
-	return 0
-}
-
 func ZeroByIp(ip string) {
 	if _, ok := requestsMap[ip]; ok {
 		delete(requestsMap, ip)
