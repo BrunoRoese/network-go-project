@@ -101,12 +101,12 @@ func (s *Server) responseRoutine() {
 	}()
 }
 
-func (s *Server) sendResponseRoutine(ip string, response []byte) {
+func (s *Server) sendResponseRoutine() {
 	go func() {
 		for res := range responses {
-			_, err := network.SendRequest(res.Ip, 8080, response)
+			_, err := network.SendRequest(res.Ip, 8080, res.Response)
 			if err != nil {
-				slog.Error("Error sending response", slog.String("ip", ip), slog.String("error", err.Error()))
+				slog.Error("Error sending response", slog.String("ip", res.Ip), slog.String("error", err.Error()))
 				return
 			}
 		}
