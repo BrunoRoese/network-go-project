@@ -31,6 +31,7 @@ func SendRequest(ip string, port int, data []byte) (string, error) {
 
 	_, err = conn.Write(data)
 	if err != nil {
+		slog.Error("Error sending data", slog.String("error", err.Error()))
 		return "", err
 	}
 

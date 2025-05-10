@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"log/slog"
@@ -10,23 +9,23 @@ import (
 )
 
 func Talk(ip string, message string) {
-	clientService := client.GetClientService()
+	//clientService := client.GetClientService()
 
-	if clientService.ClientList == nil || len(clientService.ClientList) == 0 {
-		err := Discover()
-
-		if err != nil {
-			slog.Error("Error discovering IPs", slog.String("error", err.Error()))
-			return
-		}
-	}
-
-	specifiedClient := clientService.GetClientByIP(ip)
-
-	if specifiedClient == nil {
-		slog.Error("Client not found, stopping")
-		return
-	}
+	//if clientService.ClientList == nil || len(clientService.ClientList) == 0 {
+	//	err := Discover()
+	//
+	//	if err != nil {
+	//		slog.Error("Error discovering IPs", slog.String("error", err.Error()))
+	//		return
+	//	}
+	//}
+	//
+	//specifiedClient := clientService.GetClientByIP(ip)
+	//
+	//if specifiedClient == nil {
+	//	slog.Error("Client not found, stopping")
+	//	return
+	//}
 
 	localIp, err := network.GetLocalIp()
 
@@ -48,7 +47,7 @@ func Talk(ip string, message string) {
 		return
 	}
 
-	_, err = network.SendRequest(ip, specifiedClient.Port, jsonRequest)
+	_, err = network.SendRequest(ip, 8080, jsonRequest)
 
 	if err != nil {
 		slog.Error("Error sending request", slog.String("ip", ip), slog.String("error", err.Error()))

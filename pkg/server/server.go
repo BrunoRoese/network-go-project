@@ -55,8 +55,21 @@ func (s *Server) StartListeningRoutine() {
 				continue
 			}
 
-			foundClient := s.ClientService.GetClientByIP(addr.IP.String())
 			req, err := parser.ParseRequest(buffer[:n])
+
+			if err != nil {
+				slog.Error("Error parsing request", slog.String("error", err.Error()))
+				continue
+			}
+
+			parsedSource, _, err := parser.ParseSource(req.Information.Source)
+
+			if err != nil {
+				slog.Error("Error parsing request", slog.String("error", err.Error()))
+				continue
+			}
+
+			foundClient := s.ClientService.GetClientByIP(parsedSource)
 
 			if err != nil {
 				slog.Error("Error parsing request", slog.String("error", err.Error()))
@@ -98,7 +111,7 @@ func (s *Server) StartListeningRoutine() {
 
 			slog.Info("Sending response", slog.String("to", addr.String()), slog.String("response", string(jsonReq)))
 
-			network.SendRequest(addr.IP.String(), 8080, jsonReq)
+			network.SendRequest(parsedSource, 8080, jsonReq)
 		}
 	}()
 }
