@@ -115,7 +115,7 @@ func (c *Service) HandleNewClient(req *protocol.Request) error {
 
 	ip, port, err := parser.ParseSource(req.Information.Source)
 
-	if ip, err = network.GetLocalIp(); ip == "" && err == nil {
+	if localIp, err := network.GetLocalIp(); localIp == ip && err == nil {
 		slog.Info("Client is local, using local IP", slog.String("ip", ip))
 		return errors.New("client is local")
 	}
