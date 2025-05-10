@@ -59,6 +59,10 @@ func Discover() error {
 
 		//slog.Info("Broadcast request", slog.String("request", string(jsonRequest)))
 
+		if localIp, err := network.GetLocalIp(); ip == localIp || err != nil {
+			continue
+		}
+
 		_, err = network.SendRequest(ip, defaultBroadcastPort, jsonRequest)
 	}
 
