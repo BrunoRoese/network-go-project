@@ -19,11 +19,11 @@ type Server struct {
 var (
 	Instance *Server
 
-	requests  = make(chan *protocol.Request)
+	requests  = make(chan *protocol.Request, 100)
 	responses = make(chan struct {
 		Ip       string
 		Response []byte
-	})
+	}, 50)
 )
 
 func Init(ip string, port int) (*Server, error) {
