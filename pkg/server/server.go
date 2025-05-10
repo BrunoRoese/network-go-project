@@ -90,6 +90,7 @@ func (s *Server) StartListeningRoutine() {
 			slog.Info("Received message", slog.String("from", addr.String()), slog.String("request", req.String()))
 
 			if req.Information.Method == "ACK" {
+				handler.ZeroByIp(parsedSource)
 				continue
 			}
 
