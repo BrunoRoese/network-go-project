@@ -14,10 +14,6 @@ func (h *ACK) Name() string {
 func (h *ACK) BuildRequest(headers map[string]string, body string, source net.UDPAddr) Request {
 	requestId := parseUUID(headers["requestId"])
 
-	if requestId == uuid.Nil {
-		return Request{}
-	}
-
 	return Request{
 		Information: Information{
 			Method: h.Name(),
