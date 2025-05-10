@@ -8,14 +8,14 @@ import (
 	"net"
 )
 
-func HandleHeartbeatReq(request *protocol.Request) {
+func HandleHeartbeatReq(request *protocol.Request) *protocol.Request {
 	response := protocol.ACK{}
 
 	responseId := request.Information.Id
 
 	if responseId != uuid.Nil {
 		slog.Info("Heartbeat request received", slog.String("requestId", responseId.String()))
-		return
+		return nil
 	}
 
 	headers := map[string]string{}
@@ -26,8 +26,10 @@ func HandleHeartbeatReq(request *protocol.Request) {
 
 	if err != nil {
 		slog.Error("Error getting local IP", slog.String("error", err.Error()))
-		return
+		return nil
 	}
 
-	response.BuildRequest(headers, "OK", net.UDPAddr{IP: net.ParseIP(localIp), Port: 8080})
+	res := response.BuildRequest(headers, "OK", net.UDPAddr{IP: net.ParseIP(localIp), Port: 8080})
+
+	return &res
 }

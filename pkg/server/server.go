@@ -1,7 +1,9 @@
 package server
 
 import (
+	"encoding/json"
 	"github.com/BrunoRoese/socket/pkg/client"
+	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/server/handler"
 	"log/slog"
@@ -72,11 +74,31 @@ func (s *Server) StartListeningRoutine() {
 				slog.Info("Client found in client list", slog.String("ip", addr.IP.String()))
 			}
 
+			slog.Info("Received message", slog.String("from", addr.String()), slog.String("request", req.String()))
+
+			if req.Information.Method == "ACK" {
+				continue
+			}
+
 			reqFunc := handler.GetRequestType(req)
 
-			reqFunc(req)
+			response := reqFunc(req)
 
-			slog.Info("Received message", slog.String("from", addr.String()), slog.String("request", req.String()))
+			if err != nil {
+				slog.Error("Error handling request", slog.String("error", err.Error()))
+				continue
+			}
+
+			jsonReq, err := json.Marshal(response)
+
+			if err != nil {
+				slog.Error("Error marshalling response", slog.String("error", err.Error()))
+				continue
+			}
+
+			slog.Info("Sending response", slog.String("to", addr.String()), slog.String("response", string(jsonReq)))
+
+			network.SendRequest(addr.IP.String(), 8080, jsonReq)
 		}
 	}()
 }

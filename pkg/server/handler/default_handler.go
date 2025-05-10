@@ -7,14 +7,14 @@ import (
 	"net"
 )
 
-func HandleDefaultReq(req *protocol.Request) {
+func HandleDefaultReq(req *protocol.Request) *protocol.Request {
 	res := protocol.ACK{}
 
 	localIp, err := network.GetLocalIp()
 
 	if err != nil {
 		slog.Error("Error getting local IP", slog.String("error", err.Error()))
-		return
+		return nil
 	}
 
 	udpAddr := net.UDPAddr{IP: net.ParseIP(localIp), Port: 8080}
@@ -23,5 +23,7 @@ func HandleDefaultReq(req *protocol.Request) {
 
 	headers["requestId"] = req.Information.Id.String()
 
-	res.BuildRequest(headers, "OK", udpAddr)
+	response := res.BuildRequest(headers, "OK", udpAddr)
+
+	return &response
 }

@@ -7,7 +7,7 @@ import (
 	"log/slog"
 )
 
-func HandleAckReq(request *protocol.Request) {
+func HandleAckReq(request *protocol.Request) *protocol.Request {
 	if request.Information.Id == uuid.Nil {
 		slog.Info("Broadcast ACK received", slog.String("source", request.Information.Source), slog.String("id", "0"))
 
@@ -15,9 +15,11 @@ func HandleAckReq(request *protocol.Request) {
 
 		if err != nil {
 			slog.Error("Error parsing source", slog.String("error", err.Error()))
-			return
+			return nil
 		}
 
 		ZeroByIp(ip)
 	}
+
+	return nil
 }

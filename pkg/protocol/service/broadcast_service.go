@@ -49,7 +49,7 @@ func Discover() error {
 	listOfIps := extractIPs(output)
 
 	for _, ip := range listOfIps {
-		slog.Info("Sending broadcast to", slog.String("ip", ip))
+		//slog.Info("Sending broadcast to", slog.String("ip", ip))
 		jsonRequest, err := buildHeartbeatReq()
 
 		if err != nil {
@@ -57,7 +57,7 @@ func Discover() error {
 			continue
 		}
 
-		slog.Info("Broadcast request", slog.String("request", string(jsonRequest)))
+		//slog.Info("Broadcast request", slog.String("request", string(jsonRequest)))
 
 		_, err = network.SendRequest(ip, defaultBroadcastPort, jsonRequest)
 	}
