@@ -132,5 +132,8 @@ func (s *Server) Close() {
 	if err := s.Conn.Close(); err != nil {
 		slog.Error("Error closing UDP connection", slog.String("error", err.Error()))
 	}
+
+	close(requests)
+	close(responses)
 	slog.Info("Server closed")
 }
