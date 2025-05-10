@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/BrunoRoese/socket/pkg/network"
-	"github.com/BrunoRoese/socket/pkg/protocol/parser"
+	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/server/handler"
 	"log/slog"
 	"net"
@@ -16,7 +16,15 @@ type Server struct {
 	ClientService *client.Service
 }
 
-var Instance *Server
+var (
+	Instance *Server
+
+	requests  = make(chan *protocol.Request)
+	responses = make(chan struct {
+		Ip       string
+		Response []byte
+	})
+)
 
 func Init(ip string, port int) (*Server, error) {
 	var newServer Server
@@ -46,75 +54,78 @@ func Init(ip string, port int) (*Server, error) {
 func (s *Server) StartListeningRoutine() {
 	go func() {
 		for {
-			slog.Info("Waiting for message")
-			buffer := make([]byte, 1024)
-			n, addr, err := s.Conn.ReadFromUDP(buffer)
-
-			if err != nil {
-				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
-				continue
-			}
-
-			req, err := parser.ParseRequest(buffer[:n])
-
-			if err != nil {
-				slog.Error("Error parsing request", slog.String("error", err.Error()))
-				continue
-			}
-
-			parsedSource, _, err := parser.ParseSource(req.Information.Source)
-
-			if err != nil {
-				slog.Error("Error parsing request", slog.String("error", err.Error()))
-				continue
-			}
-
-			foundClient := s.ClientService.GetClientByIP(parsedSource)
-
-			if err != nil {
-				slog.Error("Error parsing request", slog.String("error", err.Error()))
-				continue
-			}
-
-			if foundClient == nil {
-				err := s.ClientService.HandleNewClient(req)
-
-				if err != nil {
-					slog.Error("Error handling new client", slog.String("error", err.Error()))
-					continue
-				}
-			} else {
-				slog.Info("Client found in client list", slog.String("ip", addr.IP.String()))
-			}
-
-			slog.Info("Received message", slog.String("from", addr.String()), slog.String("request", req.String()))
-
-			if req.Information.Method == "ACK" {
-				handler.ZeroByIp(parsedSource)
-				continue
-			}
-
-			reqFunc := handler.GetRequestType(req)
-
-			response := reqFunc(req)
+			req, addr, err := s.parseRequest()
 
 			if err != nil {
 				slog.Error("Error handling request", slog.String("error", err.Error()))
 				continue
 			}
 
-			jsonReq, err := json.Marshal(response)
+			foundClient, err := s.getClient(req.Information)
+			if err != nil {
+				slog.Error(err.Error())
+				continue
+			}
 
+			if foundClient == nil && s.ClientService.HandleNewClient(req) != nil {
+				slog.Error("Error handling new client", slog.String("error", err.Error()))
+				continue
+			}
+
+			slog.Info("Received message", slog.String("from", addr.String()), slog.String("request", req.String()))
+
+			if req.Information.Method == "ACK" {
+				handler.ZeroByIp(foundClient.Ip)
+				continue
+			}
+
+			requests <- req
+		}
+	}()
+}
+
+func (s *Server) responseRoutine() {
+	go func() {
+		for req := range requests {
+			response, err := s.buildResponseJson(req)
 			if err != nil {
 				slog.Error("Error marshalling response", slog.String("error", err.Error()))
 				continue
 			}
 
-			slog.Info("Sending response", slog.String("to", addr.String()), slog.String("response", string(jsonReq)))
-
-			network.SendRequest(parsedSource, 8080, jsonReq)
+			responses <- struct {
+				Ip       string
+				Response []byte
+			}{Ip: req.Information.Source, Response: response}
 		}
 	}()
+}
+
+func (s *Server) sendResponseRoutine(ip string, response []byte) {
+	go func() {
+		for res := range responses {
+			_, err := network.SendRequest(res.Ip, 8080, response)
+			if err != nil {
+				slog.Error("Error sending response", slog.String("ip", ip), slog.String("error", err.Error()))
+				return
+			}
+		}
+	}()
+}
+
+func (s *Server) buildResponseJson(req *protocol.Request) ([]byte, error) {
+	reqFunc := handler.GetRequestType(req)
+
+	response := reqFunc(req)
+
+	jsonRequest, err := json.Marshal(response)
+
+	if err != nil {
+		slog.Error("Error marshalling request", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	return jsonRequest, nil
 }
 
 func (s *Server) Close() {
