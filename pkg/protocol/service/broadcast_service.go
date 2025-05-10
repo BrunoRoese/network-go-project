@@ -13,11 +13,7 @@ import (
 	"time"
 )
 
-var (
-	defaultBroadcastPort = 8080
-
-	defaultBroadcastMessage = "Hello, world!"
-)
+var defaultBroadcastPort = 8080
 
 func Broadcast() {
 	ticker := time.NewTicker(network.GetUdpTimeout())
@@ -54,12 +50,16 @@ func Discover() error {
 
 	for _, ip := range listOfIps {
 		slog.Info("Sending broadcast to", slog.String("ip", ip))
-		_, err := network.SendRequest(ip, defaultBroadcastPort, []byte(defaultBroadcastMessage))
+		jsonRequest, err := buildHeartbeatReq()
 
 		if err != nil {
 			//slog.Error("Error sending broadcast", slog.String("ip", ip), slog.String("error", err.Error()))
 			continue
 		}
+
+		slog.Info("Broadcast request", slog.String("request", string(jsonRequest)))
+
+		_, err = network.SendRequest(ip, defaultBroadcastPort, jsonRequest)
 	}
 
 	return nil
@@ -71,23 +71,32 @@ func broadcast() {
 	clientService := client.GetClientService()
 
 	for _, c := range clientService.ClientList {
-		heartbeat := protocol.Heartbeat{}
-		request := heartbeat.BuildRequest(nil, "", server.Instance.UdpAddr)
-
-		slog.Info("Sending heartbeat to", slog.String("ip", c.Ip))
-
-		jsonRequest, err := json.Marshal(request)
+		jsonRequest, err := buildHeartbeatReq()
 
 		if err != nil {
-			slog.Info("Error marshalling request", slog.String("error", err.Error()))
+			slog.Info("Error building request", slog.String("error", err.Error()))
 			continue
 		}
 
-		slog.Info("Heartbeat request", slog.String("request", string(jsonRequest)))
+		slog.Info("Sending heartbeat to", slog.String("ip", c.Ip))
 		_, err = network.SendRequest(c.Ip, 8080, jsonRequest)
 
 		handler.IncrementByIp(c.Ip)
 	}
+}
+
+func buildHeartbeatReq() ([]byte, error) {
+	heartbeat := protocol.Heartbeat{}
+	request := heartbeat.BuildRequest(nil, "", server.Instance.UdpAddr)
+
+	jsonRequest, err := json.Marshal(request)
+
+	if err != nil {
+		slog.Info("Error marshalling request", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	return jsonRequest, nil
 }
 
 func extractIPs(arpData string) []string {
