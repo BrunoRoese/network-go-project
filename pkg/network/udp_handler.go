@@ -2,11 +2,17 @@ package network
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"time"
 )
 
 func SendRequest(ip string, port int, data []byte) (string, error) {
+	if localIp, _ = GetLocalIp(); localIp == ip {
+		slog.Error("Cannot send request to self", slog.String("ip", ip))
+		return "", fmt.Errorf("cannot send request to self")
+	}
+
 	udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", ip, port))
 	if err != nil {
 		return "", err
