@@ -18,6 +18,7 @@ func ZeroByIp(ip string) {
 
 func IncrementByIp(ip string) {
 	if count, ok := requestsMap[ip]; ok {
+		slog.Info("Incremented request count", slog.String("ip", ip), slog.Int("count", requestsMap[ip]))
 		requestsMap[ip] = count + 1
 	} else {
 		requestsMap[ip] = 1
@@ -37,7 +38,5 @@ func IncrementByIp(ip string) {
 		} else {
 			slog.Info("Client removed successfully", slog.String("ip", ip))
 		}
-	} else {
-		slog.Info("Incremented request count", slog.String("ip", ip), slog.Int("count", requestsMap[ip]))
 	}
 }
