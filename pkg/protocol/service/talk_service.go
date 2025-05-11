@@ -10,9 +10,9 @@ import (
 )
 
 func Talk(ip string, message string) {
-	clientService := client.GetClientService()
+	clientList := *client.GetListFromFile()
 
-	if clientService.ClientList == nil || len(clientService.ClientList) == 0 {
+	if clientList == nil || len(clientList) == 0 {
 		err := Discover()
 
 		if err != nil {
@@ -21,7 +21,13 @@ func Talk(ip string, message string) {
 		}
 	}
 
-	specifiedClient := clientService.GetClientByIP(ip)
+	var specifiedClient *client.Client
+	for _, ci := range clientList {
+		if ci.Ip == ip {
+			slog.Info("Client found")
+			specifiedClient = &ci
+		}
+	}
 
 	if specifiedClient == nil {
 		slog.Error("Client not found, stopping")

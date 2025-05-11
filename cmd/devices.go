@@ -11,9 +11,7 @@ var devicesCmd = &cobra.Command{
 	Short: "Get's a list of all devices listed and discovered.",
 	Long:  `This will return a list of all devices and informations.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		client.GetClientService()
-
-		clientList := client.GetClientService().ClientList
+		clientList := *client.GetListFromFile()
 
 		if len(clientList) == 0 {
 			cmd.Println("No devices found.")
