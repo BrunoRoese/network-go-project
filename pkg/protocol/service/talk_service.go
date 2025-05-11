@@ -32,11 +32,20 @@ func Talk(ip string, message string) {
 		return
 	}
 
-	serverUdpAddr := net.UDPAddr{IP: net.ParseIP(localIp), Port: 0}
+	conn, err := net.ListenUDP("udp", &net.UDPAddr{
+		IP:   net.ParseIP(localIp),
+		Port: 0,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+
+	serverUdpAddr := conn.LocalAddr().(*net.UDPAddr)
 
 	talk := protocol.Talk{}
 
-	request := talk.BuildRequest(nil, message, serverUdpAddr)
+	request := talk.BuildRequest(nil, message, *serverUdpAddr)
 
 	jsonRequest, err := json.Marshal(request)
 
@@ -46,12 +55,6 @@ func Talk(ip string, message string) {
 	}
 
 	network.SendRequest(specifiedClient.Ip, specifiedClient.Port, jsonRequest)
-
-	conn, err := net.ListenUDP("udp", &serverUdpAddr)
-	if err != nil {
-		return
-	}
-	defer conn.Close()
 
 	buffer := make([]byte, 1024)
 	n, addr, err := conn.ReadFromUDP(buffer)
