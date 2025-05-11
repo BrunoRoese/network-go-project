@@ -5,6 +5,7 @@ import (
 	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
+	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/server/handler"
 	"log/slog"
 	"net"
@@ -21,7 +22,7 @@ var (
 
 	requests  = make(chan *protocol.Request, 100)
 	responses = make(chan struct {
-		Ip       string
+		Source   string
 		Response []byte
 	}, 50)
 )
@@ -98,9 +99,9 @@ func (s *Server) responseRoutine() {
 
 			slog.Info("Sending response", slog.String("response", string(response)))
 			responses <- struct {
-				Ip       string
+				Source   string
 				Response []byte
-			}{Ip: req.Information.Source, Response: response}
+			}{Source: req.Information.Source, Response: response}
 		}
 	}()
 }
@@ -108,10 +109,15 @@ func (s *Server) responseRoutine() {
 func (s *Server) sendResponseRoutine() {
 	go func() {
 		for res := range responses {
-			slog.Info("Sending response", slog.String("ip", res.Ip), slog.String("response", string(res.Response)))
-			_, err := network.SendRequest(res.Ip, 8080, res.Response)
+			ip, _, err := parser.ParseSource(res.Source)
 			if err != nil {
-				slog.Error("Error sending response", slog.String("ip", res.Ip), slog.String("error", err.Error()))
+				slog.Error("Error parsing source", slog.String("error", err.Error()))
+				continue
+			}
+			slog.Info("Sending response", slog.String("ip", ip), slog.String("response", string(res.Response)))
+			_, err = network.SendRequest(ip, 8080, res.Response)
+			if err != nil {
+				slog.Error("Error sending response", slog.String("ip", ip), slog.String("error", err.Error()))
 				return
 			}
 		}
