@@ -132,15 +132,9 @@ func (s *Server) sendResponseRoutine() {
 			}
 			slog.Info("Parsed IP", slog.String("ip", ip))
 			slog.Info("Sending response", slog.String("ip", ip), slog.String("response", string(res.Response)))
-			for i := 0; i < 3; i++ {
-				_, err = network.SendRequest(ip, 8080, res.Response)
-				if err == nil {
-					break
-				}
-				slog.Error("Retrying to send response", slog.String("ip", ip), slog.String("error", err.Error()))
-			}
+			_, err = network.SendRequest(ip, 8080, res.Response)
 			if err != nil {
-				slog.Error("Failed to send response after retries", slog.String("ip", ip), slog.String("error", err.Error()))
+				slog.Error("Failed to send response", slog.String("ip", ip), slog.String("error", err.Error()))
 				continue
 			}
 		}
