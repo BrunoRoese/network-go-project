@@ -66,6 +66,9 @@ func (s *Service) startDiscoveryRoutine() {
 					slog.Error("Error handling new client", slog.String("error", handleErr.Error()))
 					continue
 				}
+			} else {
+				slog.Error("Client found, updating")
+				s.ClientService.UpdateClient(foundClient)
 			}
 
 			if req.Information.Method != "ACK" && req.Information.Method != "HEARTBEAT" {
@@ -75,9 +78,6 @@ func (s *Service) startDiscoveryRoutine() {
 
 			if req.Information.Method == "ACK" && req.Information.Id == uuid.Nil {
 				slog.Info("ACK request received for hb, skipping response")
-				if foundClient != nil {
-					s.ClientService.UpdateClient(foundClient)
-				}
 				handler.HandleAckReq(req)
 				continue
 			}

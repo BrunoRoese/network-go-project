@@ -65,7 +65,6 @@ func (c *Service) UpdateClient(client *Client) {
 		if fromList.Ip == client.Ip {
 			slog.Info("Client already registered, updating")
 			fromList.LastHeartbeat = time.Now().Unix()
-			return
 		}
 	}
 
