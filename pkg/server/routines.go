@@ -98,7 +98,6 @@ func (s *Service) startDiscoveryRoutine() {
 func (s *Service) responseRoutine() {
 	go func() {
 		for req := range requests {
-			//slog.Info("Handling request", slog.String("request", req.String()))
 			response, err := s.buildResponseJson(req)
 			if err != nil {
 				slog.Error("Error marshalling response", slog.String("error", err.Error()))
@@ -113,7 +112,8 @@ func (s *Service) responseRoutine() {
 			responses <- struct {
 				Source   string
 				Response []byte
-			}{Source: req.Information.Source, Response: response}
+				Method   string
+			}{Source: req.Information.Source, Response: response, Method: req.Information.Method}
 		}
 	}()
 }
@@ -126,8 +126,10 @@ func (s *Service) sendResponseRoutine() {
 				slog.Error("Error parsing source", slog.String("error", err.Error()))
 				continue
 			}
-			//slog.Info("Parsed IP", slog.String("ip", ip))
-			//slog.Info("Sending response", slog.String("ip", ip), slog.String("response", string(res.Response)))
+			if res.Method == "HEARTBEAT" {
+				slog.Info("Heartbeat response received, rewriting port to 8080")
+				port = 8080
+			}
 			_, err = network.SendRequest(ip, port, res.Response)
 			if err != nil {
 				slog.Error("Failed to send response", slog.String("ip", ip), slog.String("error", err.Error()))

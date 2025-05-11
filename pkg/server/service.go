@@ -23,6 +23,7 @@ var (
 	responses = make(chan struct {
 		Source   string
 		Response []byte
+		Method   string
 	}, 50)
 )
 
