@@ -29,7 +29,7 @@ var fileCmd = &cobra.Command{
 }
 
 func init() {
-	fileCmd.PersistentFlags().StringVar(&filePath, "filePath", "", "The directory of the file to be sent")
+	fileCmd.PersistentFlags().StringVar(&filePath, "path", "", "The directory of the file to be sent")
 	err := fileCmd.MarkPersistentFlagRequired("file")
 
 	fileCmd.PersistentFlags().StringVar(&clientIp, "ip", "", "The client ip to send the file")
