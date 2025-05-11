@@ -35,7 +35,7 @@ func Talk(ip string, message string) {
 		return
 	}
 
-	serverUdpAddr := net.UDPAddr{IP: net.ParseIP(localIp), Port: 8080}
+	serverUdpAddr := net.UDPAddr{IP: net.ParseIP(localIp), Port: 0}
 
 	talk := protocol.Talk{}
 
@@ -48,12 +48,20 @@ func Talk(ip string, message string) {
 		return
 	}
 
-	_, err = network.SendRequest(specifiedClient.Ip, specifiedClient.Port, jsonRequest)
+	network.SendRequest(specifiedClient.Ip, specifiedClient.Port, jsonRequest)
 
+	conn, err := net.ListenUDP("udp", &serverUdpAddr)
 	if err != nil {
-		slog.Error("Error sending request", slog.String("ip", ip), slog.String("error", err.Error()))
+		return
+	}
+	defer conn.Close()
+
+	buffer := make([]byte, 1024)
+	n, addr, err := conn.ReadFromUDP(buffer)
+	if err != nil {
+		slog.Error("Error reading from UDP", slog.String("error", err.Error()))
 		return
 	}
 
-	slog.Info("Request sent!", "Request", string(jsonRequest))
+	slog.Info("Response received", "data", string(buffer[:n]), "from", addr.String())
 }

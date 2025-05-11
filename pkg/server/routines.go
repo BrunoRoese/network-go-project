@@ -29,19 +29,7 @@ func (s *Service) startGeneralRoutine() {
 				continue
 			}
 
-			foundClient, err := s.getClient(req.Information)
-
-			if err != nil {
-				slog.Error(err.Error())
-				continue
-			}
-
-			if foundClient == nil {
-				if handleErr := s.ClientService.HandleNewClient(req); handleErr != nil {
-					slog.Error("Error handling new client", slog.String("error", handleErr.Error()))
-					continue
-				}
-			}
+			requests <- req
 		}
 	}()
 }
