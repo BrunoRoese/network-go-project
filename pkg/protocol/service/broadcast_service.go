@@ -30,8 +30,14 @@ func Broadcast() {
 	}
 
 	for range ticker.C {
+		if client.GetClientService().ClientList == nil || len(client.GetClientService().ClientList) == 0 {
+			slog.Info("No clients found, trying discover again")
+			break
+		}
 		broadcast()
 	}
+
+	Broadcast()
 }
 
 func Discover() error {
