@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"github.com/BrunoRoese/socket/pkg/client"
-	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/server/handler"
@@ -12,13 +11,16 @@ import (
 )
 
 type Server struct {
-	UdpAddr       net.UDPAddr
-	Conn          *net.UDPConn
+	DiscoveryAddr net.UDPAddr
+	GeneralAddr   net.UDPAddr
+	DiscoveryConn *net.UDPConn
+	GeneralConn   *net.UDPConn
 	ClientService *client.Service
 }
 
 var (
-	Instance *Server
+	Instance    *Server
+	defaultPort = 8080
 
 	requests  = make(chan *protocol.Request, 100)
 	responses = make(chan struct {
@@ -27,118 +29,33 @@ var (
 	}, 50)
 )
 
-func Init(ip string, port int) (*Server, error) {
+func Init(ip string) (*Server, error) {
 	var newServer Server
 
-	newServer.UdpAddr = net.UDPAddr{IP: net.ParseIP(ip), Port: port}
+	newServer.DiscoveryAddr = net.UDPAddr{IP: net.ParseIP(ip), Port: defaultPort}
 
-	slog.Info("Server initiating...", slog.String("ip", ip), slog.Int("port", port))
+	slog.Info("Server initiating...", slog.String("ip", ip), slog.Int("port", defaultPort))
 
-	conn, err := net.ListenUDP("udp", &newServer.UdpAddr)
+	conn, err := net.ListenUDP("udp", &newServer.DiscoveryAddr)
 
 	if err != nil {
-		slog.Error("Error starting server", slog.String("ip", ip), slog.Int("port", port), slog.String("error", err.Error()))
+		slog.Error("Error starting server", slog.String("ip", ip), slog.Int("port", defaultPort), slog.String("error", err.Error()))
 		return nil, err
 	}
 
-	newServer.Conn = conn
+	newServer.DiscoveryConn = conn
 
 	Instance = &newServer
 
 	newServer.ClientService = client.GetClientService()
 
-	slog.Info("Server started", slog.String("ip", ip), slog.Int("port", port))
+	slog.Info("Server started", slog.String("ip", ip), slog.Int("port", defaultPort))
+
+	newServer.startDiscoveryRoutine()
+	newServer.responseRoutine()
+	newServer.sendResponseRoutine()
 
 	return &newServer, nil
-}
-
-func (s *Server) StartListeningRoutine() {
-	s.responseRoutine()
-	s.sendResponseRoutine()
-	go func() {
-		for {
-			slog.Info("Waiting for message")
-			buffer := make([]byte, 1024)
-			n, addr, err := s.Conn.ReadFromUDP(buffer)
-
-			if err != nil {
-				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
-				continue
-			}
-
-			req, err := parser.ParseRequest(buffer[:n])
-
-			if err != nil {
-				slog.Error("Error handling request", slog.String("error", err.Error()))
-				continue
-			}
-
-			foundClient, err := s.getClient(req.Information)
-			if err != nil {
-				slog.Error(err.Error())
-				continue
-			}
-
-			if foundClient == nil {
-				if handleErr := s.ClientService.HandleNewClient(req); handleErr != nil {
-					slog.Error("Error handling new client", slog.String("error", handleErr.Error()))
-					continue
-				}
-			}
-
-			if req.Information.Method == "ACK" {
-				slog.Info("ACK request received, skipping response")
-				handler.HandleAckReq(req)
-				continue
-			}
-
-			slog.Info("Received message", slog.String("from", addr.String()), slog.String("request", req.String()))
-
-			requests <- req
-		}
-	}()
-}
-
-func (s *Server) responseRoutine() {
-	go func() {
-		for req := range requests {
-			slog.Info("Handling request", slog.String("request", req.String()))
-			response, err := s.buildResponseJson(req)
-			if err != nil {
-				slog.Error("Error marshalling response", slog.String("error", err.Error()))
-				continue
-			}
-
-			if response == nil {
-				slog.Info("Null response received, skipping")
-				continue
-			}
-
-			responses <- struct {
-				Source   string
-				Response []byte
-			}{Source: req.Information.Source, Response: response}
-		}
-	}()
-}
-
-func (s *Server) sendResponseRoutine() {
-	go func() {
-		for res := range responses {
-			ip, _, err := parser.ParseSource(res.Source)
-			if err != nil {
-				slog.Error("Error parsing source", slog.String("error", err.Error()))
-				continue
-			}
-			slog.Info("Parsed IP", slog.String("ip", ip))
-			slog.Info("Sending response", slog.String("ip", ip), slog.String("response", string(res.Response)))
-			_, err = network.SendRequest(ip, 8080, res.Response)
-			if err != nil {
-				slog.Error("Failed to send response", slog.String("ip", ip), slog.String("error", err.Error()))
-				continue
-			}
-		}
-	}()
 }
 
 func (s *Server) buildResponseJson(req *protocol.Request) ([]byte, error) {
@@ -161,8 +78,19 @@ func (s *Server) buildResponseJson(req *protocol.Request) ([]byte, error) {
 	return jsonRequest, nil
 }
 
+func (s *Server) getClient(info protocol.Information) (*client.Client, error) {
+	parsedSource, _, err := parser.ParseSource(info.Source)
+
+	if err != nil {
+		slog.Error("Error parsing source", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	return s.ClientService.GetClientByIP(parsedSource), nil
+}
+
 func (s *Server) Close() {
-	if err := s.Conn.Close(); err != nil {
+	if err := s.DiscoveryConn.Close(); err != nil {
 		slog.Error("Error closing UDP connection", slog.String("error", err.Error()))
 	}
 

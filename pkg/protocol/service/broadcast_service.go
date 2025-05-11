@@ -93,7 +93,7 @@ func broadcast() {
 
 func buildHeartbeatReq() ([]byte, error) {
 	heartbeat := protocol.Heartbeat{}
-	request := heartbeat.BuildRequest(nil, "", server.Instance.UdpAddr)
+	request := heartbeat.BuildRequest(nil, "", server.Instance.DiscoveryAddr)
 
 	jsonRequest, err := json.Marshal(request)
 

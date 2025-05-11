@@ -10,8 +10,6 @@ import (
 )
 
 var (
-	udpServer *server.Server
-
 	serveCmd = &cobra.Command{
 		Use:   "serve",
 		Short: "Start the UDP server",
@@ -29,7 +27,12 @@ func run(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	startUpServer(ip, 8080)
+	udpServer := startUpServer(ip)
+
+	if udpServer == nil {
+		slog.Error("Error starting server, stopping application")
+		os.Exit(1)
+	}
 
 	slog.Info("Broadcasting to all IPs")
 
@@ -42,17 +45,17 @@ func run(cmd *cobra.Command, args []string) {
 	slog.Info("Shutting down server")
 }
 
-func startUpServer(ip string, port int) {
-	udpServer, err := server.Init(ip, port)
+func startUpServer(ip string) *server.Server {
+	udpServer, err := server.Init(ip)
 
 	if err != nil {
 		slog.Error("Error starting server, stopping application", slog.String("error", err.Error()))
-		return
+		return nil
 	}
 
-	udpServer.StartListeningRoutine()
-
 	slog.Info("Server started")
+
+	return udpServer
 }
 
 func init() {
