@@ -24,7 +24,7 @@ type Request struct {
 }
 
 func (i Information) String() string {
-	return fmt.Sprintf("Method: %s\nSource: %s", i.Method, i.Source)
+	return fmt.Sprintf("Method: %s\nSource: %s\nUUID:%s", i.Method, i.Source, i.Id)
 }
 
 func (h Header) String() string {
