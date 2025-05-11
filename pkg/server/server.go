@@ -75,6 +75,12 @@ func (s *Server) StartListeningRoutine() {
 				continue
 			}
 
+			if req.Information.Method == "ACK" {
+				slog.Info("ACK request received, skipping response")
+				handler.HandleAckReq(req)
+				continue
+			}
+
 			slog.Info("Received message", slog.String("from", addr.String()), slog.String("request", req.String()))
 
 			requests <- req
@@ -110,6 +116,7 @@ func (s *Server) sendResponseRoutine() {
 	go func() {
 		for res := range responses {
 			ip, _, err := parser.ParseSource(res.Source)
+			slog.Info("Parsed source", slog.String("source", res.Source), slog.String("ip", ip))
 			if err != nil {
 				slog.Error("Error parsing source", slog.String("error", err.Error()))
 				continue
