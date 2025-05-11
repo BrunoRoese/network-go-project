@@ -22,12 +22,12 @@ func (s *Service) startGeneralRoutine() {
 
 			req, err := parser.ParseRequest(buffer[:n])
 
-			slog.Info("Received message", slog.String("request", req.String()))
-
 			if err != nil {
 				slog.Error("Error handling request", slog.String("error", err.Error()))
 				continue
 			}
+
+			slog.Info("Received message", slog.String("request", req.String()))
 
 			requests <- req
 		}
