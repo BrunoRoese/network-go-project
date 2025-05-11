@@ -12,15 +12,6 @@ import (
 func Talk(ip string, message string) {
 	clientList := *client.GetListFromFile()
 
-	if clientList == nil || len(clientList) == 0 {
-		err := Discover()
-
-		if err != nil {
-			slog.Error("Error discovering IPs", slog.String("error", err.Error()))
-			return
-		}
-	}
-
 	var specifiedClient *client.Client
 	for _, ci := range clientList {
 		if ci.Ip == ip {
