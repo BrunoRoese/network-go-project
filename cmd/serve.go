@@ -45,7 +45,7 @@ func run(cmd *cobra.Command, args []string) {
 	slog.Info("Shutting down server")
 }
 
-func startUpServer(ip string) *server.Server {
+func startUpServer(ip string) *server.Service {
 	udpServer, err := server.Init(ip)
 
 	if err != nil {
@@ -53,7 +53,7 @@ func startUpServer(ip string) *server.Server {
 		return nil
 	}
 
-	slog.Info("Server started")
+	slog.Info("ServerService started")
 
 	return udpServer
 }

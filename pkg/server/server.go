@@ -6,20 +6,17 @@ import (
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/server/handler"
+	"github.com/BrunoRoese/socket/pkg/server/model"
 	"log/slog"
-	"net"
 )
 
-type Server struct {
-	DiscoveryAddr net.UDPAddr
-	GeneralAddr   net.UDPAddr
-	DiscoveryConn *net.UDPConn
-	GeneralConn   *net.UDPConn
+type Service struct {
+	Server        *model.Server
 	ClientService *client.Service
 }
 
 var (
-	Instance    *Server
+	Instance    *Service
 	defaultPort = 8080
 
 	requests  = make(chan *protocol.Request, 100)
@@ -29,36 +26,32 @@ var (
 	}, 50)
 )
 
-func Init(ip string) (*Server, error) {
-	var newServer Server
+func Init(ip string) (*Service, error) {
+	var service Service
 
-	newServer.DiscoveryAddr = net.UDPAddr{IP: net.ParseIP(ip), Port: defaultPort}
-
-	slog.Info("Server initiating...", slog.String("ip", ip), slog.Int("port", defaultPort))
-
-	conn, err := net.ListenUDP("udp", &newServer.DiscoveryAddr)
+	server, err := model.GetServer()
 
 	if err != nil {
-		slog.Error("Error starting server", slog.String("ip", ip), slog.Int("port", defaultPort), slog.String("error", err.Error()))
+		slog.Error("Error getting server", slog.String("error", err.Error()))
 		return nil, err
 	}
 
-	newServer.DiscoveryConn = conn
+	service.Server = server
 
-	Instance = &newServer
+	Instance = &service
 
-	newServer.ClientService = client.GetClientService()
+	service.ClientService = client.GetClientService()
 
-	slog.Info("Server started", slog.String("ip", ip), slog.Int("port", defaultPort))
+	slog.Info("ServerService started", slog.String("ip", ip), slog.Int("port", defaultPort))
 
-	newServer.startDiscoveryRoutine()
-	newServer.responseRoutine()
-	newServer.sendResponseRoutine()
+	service.startDiscoveryRoutine()
+	service.responseRoutine()
+	service.sendResponseRoutine()
 
-	return &newServer, nil
+	return &service, nil
 }
 
-func (s *Server) buildResponseJson(req *protocol.Request) ([]byte, error) {
+func (s *Service) buildResponseJson(req *protocol.Request) ([]byte, error) {
 	reqFunc := handler.GetRequestType(req)
 
 	response := reqFunc(req)
@@ -78,7 +71,7 @@ func (s *Server) buildResponseJson(req *protocol.Request) ([]byte, error) {
 	return jsonRequest, nil
 }
 
-func (s *Server) getClient(info protocol.Information) (*client.Client, error) {
+func (s *Service) getClient(info protocol.Information) (*client.Client, error) {
 	parsedSource, _, err := parser.ParseSource(info.Source)
 
 	if err != nil {
@@ -89,12 +82,12 @@ func (s *Server) getClient(info protocol.Information) (*client.Client, error) {
 	return s.ClientService.GetClientByIP(parsedSource), nil
 }
 
-func (s *Server) Close() {
-	if err := s.DiscoveryConn.Close(); err != nil {
+func (s *Service) Close() {
+	if err := s.Server.DiscoveryConn.Close(); err != nil {
 		slog.Error("Error closing UDP connection", slog.String("error", err.Error()))
 	}
 
 	close(requests)
 	close(responses)
-	slog.Info("Server closed")
+	slog.Info("ServerService closed")
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
+	"github.com/BrunoRoese/socket/pkg/server/model"
 	"log/slog"
 	"net"
 )
@@ -17,7 +18,9 @@ func HandleDefaultReq(req *protocol.Request) *protocol.Request {
 		return nil
 	}
 
-	udpAddr := net.UDPAddr{IP: net.ParseIP(localIp), Port: 8080}
+	server, _ := model.GetServer()
+
+	udpAddr := net.UDPAddr{IP: net.ParseIP(localIp), Port: server.GeneralAddr.Port}
 
 	headers := map[string]string{}
 

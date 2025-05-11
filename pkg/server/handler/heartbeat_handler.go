@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
+	"github.com/BrunoRoese/socket/pkg/server/model"
 	"github.com/google/uuid"
 	"log/slog"
 	"net"
@@ -29,7 +30,9 @@ func HandleHeartbeatReq(request *protocol.Request) *protocol.Request {
 		return nil
 	}
 
-	res := response.BuildRequest(headers, "OK", net.UDPAddr{IP: net.ParseIP(localIp), Port: 8080})
+	server, _ := model.GetServer()
+
+	res := response.BuildRequest(headers, "OK", net.UDPAddr{IP: net.ParseIP(localIp), Port: server.DiscoveryAddr.Port})
 
 	return &res
 }

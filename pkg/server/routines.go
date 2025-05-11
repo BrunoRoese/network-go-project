@@ -7,12 +7,12 @@ import (
 	"log/slog"
 )
 
-func (s *Server) startDiscoveryRoutine() {
+func (s *Service) startDiscoveryRoutine() {
 	go func() {
 		for {
 			slog.Info("Waiting for message")
 			buffer := make([]byte, 1024)
-			n, addr, err := s.DiscoveryConn.ReadFromUDP(buffer)
+			n, addr, err := s.Server.DiscoveryConn.ReadFromUDP(buffer)
 
 			if err != nil {
 				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
@@ -57,7 +57,7 @@ func (s *Server) startDiscoveryRoutine() {
 	}()
 }
 
-func (s *Server) responseRoutine() {
+func (s *Service) responseRoutine() {
 	go func() {
 		for req := range requests {
 			slog.Info("Handling request", slog.String("request", req.String()))
@@ -80,17 +80,17 @@ func (s *Server) responseRoutine() {
 	}()
 }
 
-func (s *Server) sendResponseRoutine() {
+func (s *Service) sendResponseRoutine() {
 	go func() {
 		for res := range responses {
-			ip, _, err := parser.ParseSource(res.Source)
+			ip, port, err := parser.ParseSource(res.Source)
 			if err != nil {
 				slog.Error("Error parsing source", slog.String("error", err.Error()))
 				continue
 			}
 			slog.Info("Parsed IP", slog.String("ip", ip))
 			slog.Info("Sending response", slog.String("ip", ip), slog.String("response", string(res.Response)))
-			_, err = network.SendRequest(ip, 8080, res.Response)
+			_, err = network.SendRequest(ip, port, res.Response)
 			if err != nil {
 				slog.Error("Failed to send response", slog.String("ip", ip), slog.String("error", err.Error()))
 				continue

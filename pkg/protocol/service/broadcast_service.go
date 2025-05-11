@@ -13,8 +13,6 @@ import (
 	"time"
 )
 
-var defaultBroadcastPort = 8080
-
 func Broadcast() {
 	ticker := time.NewTicker(network.GetUdpTimeout())
 	defer ticker.Stop()
@@ -65,7 +63,7 @@ func Discover() error {
 			continue
 		}
 
-		_, err = network.SendRequest(ip, defaultBroadcastPort, jsonRequest)
+		_, err = network.SendRequest(ip, server.Instance.Server.DiscoveryAddr.Port, jsonRequest)
 	}
 
 	return nil
@@ -85,7 +83,7 @@ func broadcast() {
 		}
 
 		slog.Info("Sending heartbeat to", slog.String("ip", c.Ip))
-		_, err = network.SendRequest(c.Ip, 8080, jsonRequest)
+		_, err = network.SendRequest(c.Ip, server.Instance.Server.DiscoveryAddr.Port, jsonRequest)
 
 		handler.IncrementByIp(c.Ip)
 	}
@@ -93,7 +91,7 @@ func broadcast() {
 
 func buildHeartbeatReq() ([]byte, error) {
 	heartbeat := protocol.Heartbeat{}
-	request := heartbeat.BuildRequest(nil, "", server.Instance.DiscoveryAddr)
+	request := heartbeat.BuildRequest(nil, "", server.Instance.Server.DiscoveryAddr)
 
 	jsonRequest, err := json.Marshal(request)
 
