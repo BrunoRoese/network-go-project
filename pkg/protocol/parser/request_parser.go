@@ -2,9 +2,11 @@ package parser
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"log"
+	"net"
 	"strconv"
 	"strings"
 )
@@ -35,4 +37,18 @@ func ParseSource(source string) (string, int, error) {
 	}
 
 	return ip, port, nil
+}
+
+func ParseProtocol(protocol protocol.Protocol, conn *net.UDPConn, message string) ([]byte, error) {
+	serverUdpAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	request := protocol.BuildRequest(nil, message, *serverUdpAddr)
+
+	jsonRequest, err := json.Marshal(request)
+
+	if err != nil {
+		return nil, errors.New("error marshalling request")
+	}
+
+	return jsonRequest, nil
 }

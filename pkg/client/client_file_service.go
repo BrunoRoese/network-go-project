@@ -24,3 +24,17 @@ func GetListFromFile() *[]Client {
 	slog.Info("Clients loaded from file", "clients", clients)
 	return &clients
 }
+
+func FindById(ip string) *Client {
+	clientList := *GetListFromFile()
+
+	for _, c := range clientList {
+		if c.Ip == ip {
+			slog.Info("Client found")
+			return &c
+		}
+	}
+
+	slog.Info("Client not found")
+	return nil
+}

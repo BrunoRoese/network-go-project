@@ -47,3 +47,26 @@ func SendRequest(ip string, port int, data []byte) (string, error) {
 func GetUdpTimeout() time.Duration {
 	return 5 * time.Second
 }
+
+func CreateConn() (*net.UDPConn, error) {
+	lIp, err := GetLocalIp()
+
+	if err != nil {
+		slog.Error("Error getting local ip", slog.String("ip", lIp))
+		return nil, err
+	}
+
+	conn, err := net.ListenUDP("udp", &net.UDPAddr{
+		IP:   net.ParseIP(lIp),
+		Port: 0,
+	})
+
+	if err != nil {
+		slog.Error("Error creating connection", slog.String("ip", lIp))
+		return nil, err
+	}
+
+	slog.Info("Connection created", slog.String("ip", lIp), slog.Int("port", conn.LocalAddr().(*net.UDPAddr).Port))
+
+	return conn, nil
+}
