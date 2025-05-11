@@ -52,6 +52,8 @@ func Init(ip string, port int) (*Server, error) {
 }
 
 func (s *Server) StartListeningRoutine() {
+	s.responseRoutine()
+	s.sendResponseRoutine()
 	go func() {
 		for {
 			req, addr, err := s.parseRequest()
@@ -87,12 +89,14 @@ func (s *Server) StartListeningRoutine() {
 func (s *Server) responseRoutine() {
 	go func() {
 		for req := range requests {
+			slog.Info("Handling request", slog.String("request", req.String()))
 			response, err := s.buildResponseJson(req)
 			if err != nil {
 				slog.Error("Error marshalling response", slog.String("error", err.Error()))
 				continue
 			}
 
+			slog.Info("Sending response", slog.String("response", string(response)))
 			responses <- struct {
 				Ip       string
 				Response []byte
@@ -104,6 +108,7 @@ func (s *Server) responseRoutine() {
 func (s *Server) sendResponseRoutine() {
 	go func() {
 		for res := range responses {
+			slog.Info("Sending response", slog.String("ip", res.Ip), slog.String("response", string(res.Response)))
 			_, err := network.SendRequest(res.Ip, 8080, res.Response)
 			if err != nil {
 				slog.Error("Error sending response", slog.String("ip", res.Ip), slog.String("error", err.Error()))
