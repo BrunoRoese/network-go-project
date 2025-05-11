@@ -36,7 +36,7 @@ func Talk(ip string, message string) {
 		return
 	}
 
-	serverUdpAddr := net.UDPAddr{IP: net.ParseIP(localIp), Port: server.Instance.GeneralAddr.Port}
+	serverUdpAddr := net.UDPAddr{IP: net.ParseIP(localIp), Port: server.Instance.Server.GeneralAddr.Port}
 
 	talk := protocol.Talk{}
 

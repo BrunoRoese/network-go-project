@@ -7,6 +7,44 @@ import (
 	"log/slog"
 )
 
+func (s *Service) startGeneralRoutine() {
+	go func() {
+		for {
+			slog.Info("Waiting for message")
+			buffer := make([]byte, 1024)
+			n, _, err := s.Server.GeneralConn.ReadFromUDP(buffer)
+
+			if err != nil {
+				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
+				continue
+			}
+
+			req, err := parser.ParseRequest(buffer[:n])
+
+			slog.Info("Received message", slog.String("request", req.String()))
+
+			if err != nil {
+				slog.Error("Error handling request", slog.String("error", err.Error()))
+				continue
+			}
+
+			foundClient, err := s.getClient(req.Information)
+
+			if err != nil {
+				slog.Error(err.Error())
+				continue
+			}
+
+			if foundClient == nil {
+				if handleErr := s.ClientService.HandleNewClient(req); handleErr != nil {
+					slog.Error("Error handling new client", slog.String("error", handleErr.Error()))
+					continue
+				}
+			}
+		}
+	}()
+}
+
 func (s *Service) startDiscoveryRoutine() {
 	go func() {
 		for {

@@ -44,6 +44,7 @@ func Init(ip string) (*Service, error) {
 
 	slog.Info("ServerService started", slog.String("ip", ip), slog.Int("port", defaultPort))
 
+	service.startGeneralRoutine()
 	service.startDiscoveryRoutine()
 	service.responseRoutine()
 	service.sendResponseRoutine()
