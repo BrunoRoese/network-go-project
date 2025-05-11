@@ -10,6 +10,7 @@ import (
 	"github.com/BrunoRoese/socket/pkg/server/handler"
 	"log/slog"
 	"regexp"
+	"sync"
 	"time"
 )
 
@@ -44,34 +45,42 @@ func Discover() error {
 	slog.Info("Broadcasting to all IPs")
 
 	output, err := command.HandleCommand("arp", "-a")
-
 	if err != nil {
 		slog.Error("Error executing command", slog.String("error", err.Error()))
 		return err
 	}
 
 	listOfIps := extractIPs(output)
-
-	for _, ip := range listOfIps {
-		//slog.Info("Sending broadcast to", slog.String("ip", ip))
-		jsonRequest, err := buildHeartbeatReq()
-
-		if err != nil {
-			//slog.Error("Error sending broadcast", slog.String("ip", ip), slog.String("error", err.Error()))
-			continue
-		}
-
-		//slog.Info("Broadcast request", slog.String("request", string(jsonRequest)))
-
-		slog.Info("Sending broadcast to", slog.String("ip", ip))
-
-		if localIp, err := network.GetLocalIp(); ip == localIp || err != nil {
-			continue
-		}
-
-		_, err = network.SendRequest(ip, server.Instance.Server.DiscoveryAddr.Port, jsonRequest)
+	localIp, err := network.GetLocalIp()
+	if err != nil {
+		slog.Error("Error retrieving local IP", slog.String("error", err.Error()))
+		return err
 	}
 
+	var wg sync.WaitGroup
+	for _, ip := range listOfIps {
+		if ip == localIp {
+			continue
+		}
+
+		wg.Add(1)
+		go func(ip string) {
+			defer wg.Done()
+
+			jsonRequest, err := buildHeartbeatReq()
+			if err != nil {
+				slog.Error("Error building request", slog.String("ip", ip), slog.String("error", err.Error()))
+				return
+			}
+
+			_, err = network.SendRequest(ip, server.Instance.Server.DiscoveryAddr.Port, jsonRequest)
+			if err != nil {
+				slog.Error("Error sending request", slog.String("ip", ip), slog.String("error", err.Error()))
+			}
+		}(ip)
+	}
+
+	wg.Wait()
 	return nil
 }
 
