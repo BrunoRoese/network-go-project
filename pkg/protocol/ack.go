@@ -14,6 +14,8 @@ func (h *ACK) Name() string {
 func (h *ACK) BuildRequest(headers map[string]string, body string, source net.UDPAddr) Request {
 	requestId := parseUUID(headers["requestId"])
 
+	delete(headers, "requestId")
+
 	return Request{
 		Information: Information{
 			Method: h.Name(),
@@ -21,7 +23,7 @@ func (h *ACK) BuildRequest(headers map[string]string, body string, source net.UD
 			Source: source.String(),
 		},
 		Headers: Header{
-			XHeader:     nil,
+			XHeader:     headers,
 			ContentType: "text/plain",
 		},
 		Body: body,

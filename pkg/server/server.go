@@ -77,11 +77,6 @@ func (s *Server) StartListeningRoutine() {
 
 			slog.Info("Received message", slog.String("from", addr.String()), slog.String("request", req.String()))
 
-			if req.Information.Method == "ACK" {
-				handler.ZeroByIp(foundClient.Ip)
-				continue
-			}
-
 			requests <- req
 		}
 	}()
@@ -94,6 +89,11 @@ func (s *Server) responseRoutine() {
 			response, err := s.buildResponseJson(req)
 			if err != nil {
 				slog.Error("Error marshalling response", slog.String("error", err.Error()))
+				continue
+			}
+
+			if response == nil {
+				slog.Info("ACK request received, skipping response")
 				continue
 			}
 
@@ -128,6 +128,11 @@ func (s *Server) buildResponseJson(req *protocol.Request) ([]byte, error) {
 	reqFunc := handler.GetRequestType(req)
 
 	response := reqFunc(req)
+
+	if response == nil {
+		slog.Info("ACK request received, skipping response")
+		return nil, nil
+	}
 
 	jsonRequest, err := json.Marshal(response)
 
