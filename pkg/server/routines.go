@@ -85,7 +85,7 @@ func (s *Service) startDiscoveryRoutine() {
 
 			if req.Information.Method == "ACK" && req.Information.Id == uuid.Nil {
 				slog.Info("ACK request received for hb, skipping response")
-				s.ClientService.AddClient(foundClient)
+				s.ClientService.UpdateClient(foundClient)
 				handler.HandleAckReq(req)
 				continue
 			}

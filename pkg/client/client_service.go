@@ -60,6 +60,20 @@ func (c *Service) AddClient(client *Client) {
 	}
 }
 
+func (c *Service) UpdateClient(client *Client) {
+	slog.Info("Client not registered, adding", "client", client)
+
+	client.LastHeartbeat = time.Now().Unix()
+
+	slog.Info("Client added", "clientList", c.ClientList)
+
+	err := c.saveToFile()
+
+	if err != nil {
+		slog.Error("Error saving to file", slog.String("error", err.Error()))
+	}
+}
+
 func (c *Service) LoadFromFile() error {
 	data, err := os.ReadFile(c.FilePath)
 	if err != nil {
