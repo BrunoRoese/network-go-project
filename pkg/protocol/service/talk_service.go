@@ -5,7 +5,6 @@ import (
 	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
-	"github.com/BrunoRoese/socket/pkg/server"
 	"log/slog"
 	"net"
 )
@@ -36,7 +35,7 @@ func Talk(ip string, message string) {
 		return
 	}
 
-	serverUdpAddr := net.UDPAddr{IP: net.ParseIP(localIp), Port: server.Instance.Server.GeneralAddr.Port}
+	serverUdpAddr := net.UDPAddr{IP: net.ParseIP(localIp), Port: 8080}
 
 	talk := protocol.Talk{}
 

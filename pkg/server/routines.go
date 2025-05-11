@@ -48,7 +48,7 @@ func (s *Service) startGeneralRoutine() {
 func (s *Service) startDiscoveryRoutine() {
 	go func() {
 		for {
-			slog.Info("Waiting for message")
+			//slog.Info("Waiting for message")
 			buffer := make([]byte, 1024)
 			n, addr, err := s.Server.DiscoveryConn.ReadFromUDPAddrPort(buffer)
 
@@ -98,7 +98,7 @@ func (s *Service) startDiscoveryRoutine() {
 func (s *Service) responseRoutine() {
 	go func() {
 		for req := range requests {
-			slog.Info("Handling request", slog.String("request", req.String()))
+			//slog.Info("Handling request", slog.String("request", req.String()))
 			response, err := s.buildResponseJson(req)
 			if err != nil {
 				slog.Error("Error marshalling response", slog.String("error", err.Error()))
@@ -126,8 +126,8 @@ func (s *Service) sendResponseRoutine() {
 				slog.Error("Error parsing source", slog.String("error", err.Error()))
 				continue
 			}
-			slog.Info("Parsed IP", slog.String("ip", ip))
-			slog.Info("Sending response", slog.String("ip", ip), slog.String("response", string(res.Response)))
+			//slog.Info("Parsed IP", slog.String("ip", ip))
+			//slog.Info("Sending response", slog.String("ip", ip), slog.String("response", string(res.Response)))
 			_, err = network.SendRequest(ip, port, res.Response)
 			if err != nil {
 				slog.Error("Failed to send response", slog.String("ip", ip), slog.String("error", err.Error()))

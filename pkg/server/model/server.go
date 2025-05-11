@@ -31,13 +31,14 @@ func GetServer() (*Server, error) {
 		}
 		discoveryConn, connErr := net.ListenUDP("udp", &net.UDPAddr{Port: 8080, IP: net.ParseIP(localIp)})
 		if connErr != nil {
-			err = connErr
+			slog.Error("Error listening on port 8080", slog.String("error", connErr.Error()))
 			return
 		}
 
 		generalConn, connErr := net.ListenUDP("udp", &net.UDPAddr{Port: 0, IP: net.ParseIP(localIp)})
+		slog.Info("Listening on port", slog.Int("port", generalConn.LocalAddr().(*net.UDPAddr).Port))
 		if connErr != nil {
-			err = connErr
+			slog.Error("Error listening on port x", slog.String("error", connErr.Error()))
 			return
 		}
 
