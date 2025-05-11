@@ -33,7 +33,7 @@ func getClientService(filePath string) *Service {
 			FilePath:   filePath,
 		}
 
-		_ = instance.LoadFromFile()
+		_ = instance.restartFile()
 	})
 	return instance
 }
@@ -74,43 +74,15 @@ func (c *Service) UpdateClient(client *Client) {
 	}
 }
 
-func GetListFromFile() *[]Client {
-	data, err := os.ReadFile("resources/clients.json")
-	if err != nil {
-		if os.IsNotExist(err) {
-			return &[]Client{}
+func (c *Service) restartFile() error {
+	if _, err := os.Stat(c.FilePath); err == nil {
+		if err := os.Remove(c.FilePath); err != nil {
+			return err
 		}
-		return nil
 	}
 
-	var clients []Client
-	err = json.Unmarshal(data, &clients)
-	if err != nil {
-		return nil
-	}
-
-	slog.Info("Clients loaded from file", "clients", clients)
-	return &clients
-}
-
-func (c *Service) LoadFromFile() error {
-	data, err := os.ReadFile(c.FilePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			c.ClientList = []*Client{}
-			return nil
-		}
-		return err
-	}
-
-	var clients []*Client
-	err = json.Unmarshal(data, &clients)
-	if err != nil {
-		return err
-	}
-
-	slog.Info("Clients loaded from file", "clients", clients)
-	c.ClientList = clients
+	c.ClientList = []*Client{}
+	slog.Info("File deleted and client list reset")
 	return nil
 }
 
