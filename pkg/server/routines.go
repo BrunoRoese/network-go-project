@@ -67,7 +67,7 @@ func (s *Service) startDiscoveryRoutine() {
 					continue
 				}
 			} else {
-				slog.Error("Client found, updating")
+				slog.Info("Client found, updating")
 				s.ClientService.UpdateClient(foundClient)
 			}
 
@@ -123,11 +123,7 @@ func (s *Service) sendResponseRoutine() {
 					slog.Info("Heartbeat response received, rewriting port to 8080")
 					port = 8080
 				}
-				_, err = network.SendRequest(ip, port, res.Res)
-				if err != nil {
-					slog.Error("Failed to send response", slog.String("ip", ip), slog.String("error", err.Error()))
-					return
-				}
+				network.SendRequest(ip, port, res.Res)
 			}(res)
 		}
 	}()

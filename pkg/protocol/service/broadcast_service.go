@@ -73,10 +73,7 @@ func Discover() error {
 				return
 			}
 
-			_, err = network.SendRequest(ip, server.Instance.Server.DiscoveryAddr.Port, jsonRequest)
-			if err != nil {
-				slog.Error("Error sending request", slog.String("ip", ip), slog.String("error", err.Error()))
-			}
+			network.SendRequest(ip, server.Instance.Server.DiscoveryAddr.Port, jsonRequest)
 		}(ip)
 	}
 
