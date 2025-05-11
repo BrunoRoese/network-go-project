@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/spf13/cobra"
+	"time"
 )
 
 var devicesCmd = &cobra.Command{
@@ -21,7 +22,8 @@ var devicesCmd = &cobra.Command{
 
 		cmd.Println("Devices found:")
 		for _, client := range clientList {
-			cmd.Printf("IP: %s, Port: %d", client.Ip, client.Port)
+			timeDiff := time.Now().Unix() - client.LastHeartbeat
+			cmd.Printf("IP: %s, Port: %d, Seconds since last HB: %d", client.Ip, client.Port, timeDiff)
 		}
 	},
 }

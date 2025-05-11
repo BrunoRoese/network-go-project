@@ -4,7 +4,9 @@ import (
 	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/server/handler"
+	"github.com/google/uuid"
 	"log/slog"
+	"time"
 )
 
 func (s *Service) startGeneralRoutine() {
@@ -82,8 +84,9 @@ func (s *Service) startDiscoveryRoutine() {
 				continue //TODO: RETURN NACK
 			}
 
-			if req.Information.Method == "ACK" {
-				slog.Info("ACK request received, skipping response")
+			if req.Information.Method == "ACK" && req.Information.Id == uuid.Nil {
+				slog.Info("ACK request received for hb, skipping response")
+				foundClient.LastHeartbeat = time.Now().Unix()
 				handler.HandleAckReq(req)
 				continue
 			}

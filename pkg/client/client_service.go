@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"sync"
+	"time"
 )
 
 type Service struct {
@@ -127,7 +128,7 @@ func (c *Service) HandleNewClient(req *protocol.Request) error {
 
 	slog.Info("Parsed source", slog.String("ip", ip), slog.Int("port", port))
 
-	newClient := &Client{Ip: ip, Port: port}
+	newClient := &Client{Ip: ip, Port: port, LastHeartbeat: time.Now().Unix()}
 
 	c.AddClient(newClient)
 
