@@ -21,7 +21,7 @@ func (h *ACK) BuildRequest(headers map[string]string, body string, source net.UD
 			Source: source.String(),
 		},
 		Headers: Header{
-			XHeader:     headers,
+			XHeader:     nil,
 			ContentType: "text/plain",
 		},
 		Body: body,
