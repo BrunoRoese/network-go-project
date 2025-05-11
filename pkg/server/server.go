@@ -57,7 +57,16 @@ func (s *Server) StartListeningRoutine() {
 	s.sendResponseRoutine()
 	go func() {
 		for {
-			req, addr, err := s.parseRequest()
+			slog.Info("Waiting for message")
+			buffer := make([]byte, 1024)
+			n, addr, err := s.Conn.ReadFromUDP(buffer)
+
+			if err != nil {
+				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
+				continue
+			}
+
+			req, err := parser.ParseRequest(buffer[:n])
 
 			if err != nil {
 				slog.Error("Error handling request", slog.String("error", err.Error()))

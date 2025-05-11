@@ -8,6 +8,7 @@ import (
 var requestsMap = make(map[string]int)
 
 func ZeroByIp(ip string) {
+	slog.Info("Resetting request count", slog.String("ip", ip))
 	if _, ok := requestsMap[ip]; ok {
 		delete(requestsMap, ip)
 		slog.Info("Request count reset", slog.String("ip", ip))
