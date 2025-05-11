@@ -2,8 +2,10 @@ package server
 
 import (
 	"github.com/BrunoRoese/socket/pkg/network"
+	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/server/handler"
+	"github.com/BrunoRoese/socket/pkg/server/model"
 	"github.com/google/uuid"
 	"log/slog"
 )
@@ -90,22 +92,20 @@ func (s *Service) startDiscoveryRoutine() {
 func (s *Service) responseRoutine() {
 	go func() {
 		for req := range requests {
-			response, err := s.buildResponseJson(req)
-			if err != nil {
-				slog.Error("Error marshalling response", slog.String("error", err.Error()))
-				continue
-			}
+			go func(innerReq *protocol.Request) {
+				response, err := s.buildResponseJson(innerReq)
+				if err != nil {
+					slog.Error("Error marshalling response", slog.String("error", err.Error()))
+					return
+				}
 
-			if response == nil {
-				slog.Info("Null response received, skipping")
-				continue
-			}
+				if response == nil {
+					slog.Info("Null response received, skipping")
+					return
+				}
 
-			responses <- struct {
-				Source   string
-				Response []byte
-				Method   string
-			}{Source: req.Information.Source, Response: response, Method: req.Information.Method}
+				responses <- model.Response{Source: req.Information.Source, Res: response, Method: req.Information.Method}
+			}(req)
 		}
 	}()
 }
@@ -113,20 +113,22 @@ func (s *Service) responseRoutine() {
 func (s *Service) sendResponseRoutine() {
 	go func() {
 		for res := range responses {
-			ip, port, err := parser.ParseSource(res.Source)
-			if err != nil {
-				slog.Error("Error parsing source", slog.String("error", err.Error()))
-				continue
-			}
-			if res.Method == "HEARTBEAT" {
-				slog.Info("Heartbeat response received, rewriting port to 8080")
-				port = 8080
-			}
-			_, err = network.SendRequest(ip, port, res.Response)
-			if err != nil {
-				slog.Error("Failed to send response", slog.String("ip", ip), slog.String("error", err.Error()))
-				continue
-			}
+			go func(response model.Response) {
+				ip, port, err := parser.ParseSource(res.Source)
+				if err != nil {
+					slog.Error("Error parsing source", slog.String("error", err.Error()))
+					return
+				}
+				if res.Method == "HEARTBEAT" {
+					slog.Info("Heartbeat response received, rewriting port to 8080")
+					port = 8080
+				}
+				_, err = network.SendRequest(ip, port, res.Res)
+				if err != nil {
+					slog.Error("Failed to send response", slog.String("ip", ip), slog.String("error", err.Error()))
+					return
+				}
+			}(res)
 		}
 	}()
 }

@@ -20,11 +20,7 @@ var (
 	defaultPort = 8080
 
 	requests  = make(chan *protocol.Request, 100)
-	responses = make(chan struct {
-		Source   string
-		Response []byte
-		Method   string
-	}, 50)
+	responses = make(chan model.Response, 50)
 )
 
 func Init(ip string) (*Service, error) {
