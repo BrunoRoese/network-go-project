@@ -32,7 +32,7 @@ func HandleHeartbeatReq(request *protocol.Request) *protocol.Request {
 
 	server, _ := model.GetServer()
 
-	res := response.BuildRequest(headers, "OK", net.UDPAddr{IP: net.ParseIP(localIp), Port: server.DiscoveryAddr.Port})
+	res := response.BuildRequest(headers, "OK", net.UDPAddr{IP: net.ParseIP(localIp), Port: server.GeneralAddr.Port})
 
 	return &res
 }
