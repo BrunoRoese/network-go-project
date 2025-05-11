@@ -12,7 +12,7 @@ func (s *Service) startGeneralRoutine() {
 		for {
 			slog.Info("Waiting for message")
 			buffer := make([]byte, 1024)
-			n, _, err := s.Server.GeneralConn.ReadFromUDP(buffer)
+			n, _, err := s.Server.GeneralConn.ReadFromUDPAddrPort(buffer)
 
 			if err != nil {
 				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
@@ -50,7 +50,7 @@ func (s *Service) startDiscoveryRoutine() {
 		for {
 			slog.Info("Waiting for message")
 			buffer := make([]byte, 1024)
-			n, addr, err := s.Server.DiscoveryConn.ReadFromUDP(buffer)
+			n, addr, err := s.Server.DiscoveryConn.ReadFromUDPAddrPort(buffer)
 
 			if err != nil {
 				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
