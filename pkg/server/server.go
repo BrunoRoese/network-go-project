@@ -9,6 +9,7 @@ import (
 	"github.com/BrunoRoese/socket/pkg/server/handler"
 	"log/slog"
 	"net"
+	"time"
 )
 
 type Server struct {
@@ -59,9 +60,13 @@ func (s *Server) StartListeningRoutine() {
 		for {
 			slog.Info("Waiting for message")
 			buffer := make([]byte, 1024)
+			s.Conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 			n, addr, err := s.Conn.ReadFromUDP(buffer)
 
 			if err != nil {
+				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+					continue
+				}
 				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
 				continue
 			}
@@ -79,9 +84,11 @@ func (s *Server) StartListeningRoutine() {
 				continue
 			}
 
-			if foundClient == nil && s.ClientService.HandleNewClient(req) != nil {
-				slog.Error("Error handling new client", slog.String("error", err.Error()))
-				continue
+			if foundClient == nil {
+				if handleErr := s.ClientService.HandleNewClient(req); handleErr != nil {
+					slog.Error("Error handling new client", slog.String("error", handleErr.Error()))
+					continue
+				}
 			}
 
 			if req.Information.Method == "ACK" {
@@ -108,7 +115,7 @@ func (s *Server) responseRoutine() {
 			}
 
 			if response == nil {
-				slog.Info("ACK request received, skipping response")
+				slog.Info("Null response received, skipping")
 				continue
 			}
 
@@ -139,10 +146,7 @@ func (s *Server) sendResponseRoutine() {
 			}
 			if err != nil {
 				slog.Error("Failed to send response after retries", slog.String("ip", ip), slog.String("error", err.Error()))
-			}
-			if err != nil {
-				slog.Error("Error sending response", slog.String("ip", ip), slog.String("error", err.Error()))
-				return
+				continue
 			}
 		}
 	}()
@@ -154,7 +158,7 @@ func (s *Server) buildResponseJson(req *protocol.Request) ([]byte, error) {
 	response := reqFunc(req)
 
 	if response == nil {
-		slog.Info("ACK request received, skipping response")
+		slog.Info("Handler returned null response, skipping")
 		return nil, nil
 	}
 
