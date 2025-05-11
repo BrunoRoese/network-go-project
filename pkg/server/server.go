@@ -9,7 +9,6 @@ import (
 	"github.com/BrunoRoese/socket/pkg/server/handler"
 	"log/slog"
 	"net"
-	"time"
 )
 
 type Server struct {
@@ -60,13 +59,9 @@ func (s *Server) StartListeningRoutine() {
 		for {
 			slog.Info("Waiting for message")
 			buffer := make([]byte, 1024)
-			s.Conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 			n, addr, err := s.Conn.ReadFromUDP(buffer)
 
 			if err != nil {
-				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-					continue
-				}
 				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
 				continue
 			}
