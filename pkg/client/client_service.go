@@ -48,6 +48,7 @@ func (c *Service) AddClient(client *Client) {
 
 	slog.Info("Client not registered, adding", "client", client)
 
+	client.LastHeartbeat = time.Now().Unix()
 	c.ClientList = append(c.ClientList, client)
 
 	slog.Info("Client added", "clientList", c.ClientList)

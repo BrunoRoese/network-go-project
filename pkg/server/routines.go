@@ -6,7 +6,6 @@ import (
 	"github.com/BrunoRoese/socket/pkg/server/handler"
 	"github.com/google/uuid"
 	"log/slog"
-	"time"
 )
 
 func (s *Service) startGeneralRoutine() {
@@ -86,7 +85,7 @@ func (s *Service) startDiscoveryRoutine() {
 
 			if req.Information.Method == "ACK" && req.Information.Id == uuid.Nil {
 				slog.Info("ACK request received for hb, skipping response")
-				foundClient.LastHeartbeat = time.Now().Unix()
+				s.ClientService.AddClient(foundClient)
 				handler.HandleAckReq(req)
 				continue
 			}
