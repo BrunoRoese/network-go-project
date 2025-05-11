@@ -112,7 +112,6 @@ func (s *Server) responseRoutine() {
 				continue
 			}
 
-			slog.Info("Sending response", slog.String("response", string(response)))
 			responses <- struct {
 				Source   string
 				Response []byte
@@ -125,13 +124,22 @@ func (s *Server) sendResponseRoutine() {
 	go func() {
 		for res := range responses {
 			ip, _, err := parser.ParseSource(res.Source)
-			slog.Info("Parsed source", slog.String("source", res.Source), slog.String("ip", ip))
 			if err != nil {
 				slog.Error("Error parsing source", slog.String("error", err.Error()))
 				continue
 			}
+			slog.Info("Parsed IP", slog.String("ip", ip))
 			slog.Info("Sending response", slog.String("ip", ip), slog.String("response", string(res.Response)))
-			_, err = network.SendRequest(ip, 8080, res.Response)
+			for i := 0; i < 3; i++ {
+				_, err = network.SendRequest(ip, 8080, res.Response)
+				if err == nil {
+					break
+				}
+				slog.Error("Retrying to send response", slog.String("ip", ip), slog.String("error", err.Error()))
+			}
+			if err != nil {
+				slog.Error("Failed to send response after retries", slog.String("ip", ip), slog.String("error", err.Error()))
+			}
 			if err != nil {
 				slog.Error("Error sending response", slog.String("ip", ip), slog.String("error", err.Error()))
 				return
