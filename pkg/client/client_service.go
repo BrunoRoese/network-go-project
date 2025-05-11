@@ -61,9 +61,13 @@ func (c *Service) AddClient(client *Client) {
 }
 
 func (c *Service) UpdateClient(client *Client) {
-	slog.Info("Client not registered, adding", "client", client)
-
-	client.LastHeartbeat = time.Now().Unix()
+	for _, fromList := range c.ClientList {
+		if fromList.Ip == client.Ip {
+			slog.Info("Client already registered, updating")
+			fromList.LastHeartbeat = time.Now().Unix()
+			return
+		}
+	}
 
 	slog.Info("Client added", "clientList", c.ClientList)
 
