@@ -74,6 +74,20 @@ func (s *Service) startDiscoveryRoutine() {
 				continue
 			}
 
+			ip, port, err := parser.ParseSource(req.Information.Source)
+
+			if err != nil {
+				slog.Error("Error parsing source", slog.String("error", err.Error()))
+				continue
+			}
+
+			if foundClient.Ip != ip || foundClient.Port != port {
+				slog.Info("Client IP or port changed, updating")
+				foundClient.Ip = ip
+				foundClient.Port = port
+				s.ClientService.UpdateClient(foundClient)
+			}
+
 			if foundClient == nil {
 				if handleErr := s.ClientService.HandleNewClient(req); handleErr != nil {
 					slog.Error("Error handling new client", slog.String("error", handleErr.Error()))
