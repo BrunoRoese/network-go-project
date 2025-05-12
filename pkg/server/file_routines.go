@@ -57,7 +57,7 @@ func NewFileWriter(requestId string) (*FileWriter, error) {
 	}, nil
 }
 
-func (fw *FileWriter) WriteChunk(req *protocol.Request, currentChunk int) error {
+func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
 	fw.mutex.Lock()
 	defer fw.mutex.Unlock()
 
@@ -68,22 +68,9 @@ func (fw *FileWriter) WriteChunk(req *protocol.Request, currentChunk int) error 
 		}
 	}
 
-	var decodedDataList []byte
-
-	for key, value := range chunkMap {
-		if key < currentChunk {
-			slog.Error("[File saving] Chunk out of order", slog.Int("key", key))
-			dData, err := base64.StdEncoding.DecodeString(value)
-			if err != nil {
-				return err
-			}
-
-			decodedDataList = append(decodedDataList, dData...)
-		}
-	}
-
 	chunkStr := req.Headers.XHeader["X-Chunk"]
 	chunk, err := strconv.Atoi(chunkStr)
+	slog.Info("Chunk received to write: ", slog.String("n", chunkStr))
 	if err != nil {
 		return err
 	}
@@ -94,7 +81,7 @@ func (fw *FileWriter) WriteChunk(req *protocol.Request, currentChunk int) error 
 		}
 	}
 
-	if chunk != fw.currentChunk+1 {
+	if chunk != fw.currentChunk+1 && chunk != 0 {
 		return nil
 	}
 
@@ -103,9 +90,7 @@ func (fw *FileWriter) WriteChunk(req *protocol.Request, currentChunk int) error 
 		return err
 	}
 
-	decodedDataList = append(decodedDataList, decodedData...)
-
-	_, err = fw.file.Write(decodedDataList)
+	_, err = fw.file.Write(decodedData)
 	if err != nil {
 		return err
 	}
