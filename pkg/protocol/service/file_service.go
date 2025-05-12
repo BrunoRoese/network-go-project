@@ -14,6 +14,7 @@ type FileService struct {
 	conn     *net.UDPConn
 
 	currentChunk chan int
+	stopSending  chan bool
 }
 
 func (s *FileService) StartTransfer(ip string, filePath string) error {
@@ -49,7 +50,18 @@ func (s *FileService) StartTransfer(ip string, filePath string) error {
 		return err
 	}
 
+	s.currentChunk = make(chan int)
+	s.stopSending = make(chan bool)
+
+	s.startSendingRoutine(fileContent)
+	s.startListeningRoutine()
+
 	slog.Info("File content", "content", len(fileContent))
+
+	<-s.stopSending
+
+	close(s.currentChunk)
+	close(s.stopSending)
 
 	return nil
 	//fileReq := protocol.File{}
@@ -87,14 +99,20 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 		for chunk := range s.currentChunk {
 			slog.Info("Sending chunk", "chunk", chunk)
 
-			currentChunk := fileContent[chunk]
-
-			slog.Info("Sending chunk", "chunk", currentChunk)
+			if chunk >= 0 && chunk < len(fileContent) {
+				currentChunk := fileContent[chunk]
+				slog.Info("Sending chunk", "chunk", currentChunk)
+			} else {
+				slog.Error("Chunk index out of bounds", "chunk", chunk)
+				s.stopSending <- true
+			}
 		}
 	}(fileContent)
 }
 
 func (s *FileService) startListeningRoutine() {
+	slog.Info("Starting listening routine")
+	currentChunk := 0
 	go func() {
 		buffer := make([]byte, 1024)
 		n, addr, err := s.conn.ReadFromUDPAddrPort(buffer)
@@ -104,5 +122,8 @@ func (s *FileService) startListeningRoutine() {
 		}
 
 		slog.Info("Response received", "data", string(buffer[:n]), "from", addr.String())
+		currentChunk++
+
+		s.currentChunk <- currentChunk
 	}()
 }
