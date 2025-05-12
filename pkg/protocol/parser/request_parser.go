@@ -39,10 +39,10 @@ func ParseSource(source string) (string, int, error) {
 	return ip, port, nil
 }
 
-func ParseProtocol(protocol protocol.Protocol, conn *net.UDPConn, message string) ([]byte, error) {
+func ParseProtocol(protocol protocol.Protocol, conn *net.UDPConn, message string, headers map[string]string) ([]byte, error) {
 	serverUdpAddr := conn.LocalAddr().(*net.UDPAddr)
 
-	request := protocol.BuildRequest(nil, message, *serverUdpAddr)
+	request := protocol.BuildRequest(headers, message, *serverUdpAddr)
 
 	jsonRequest, err := json.Marshal(request)
 
