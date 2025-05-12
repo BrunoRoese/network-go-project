@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/google/uuid"
+	"log/slog"
 	"strconv"
 )
 
@@ -26,6 +27,7 @@ func ValidateFileReq(req *protocol.Request, lastChunk int) error {
 		return errors.New("Invalid chunk number")
 	}
 
+	slog.Info("[File saving] Validating request", slog.String("chunk", req.Headers.XHeader["X-Chunk"]), slog.Int("lastChunk", lastChunk))
 	if req.Information.Method == "CHUNK" && lastChunk == reqChunk {
 		return errors.New("Duplicated chunk found")
 	}
