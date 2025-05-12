@@ -125,6 +125,8 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 						break
 					}
 
+					slog.Info("Sending chunk to", "ip", s.clientAddr.IP.String(), "port", s.clientAddr.Port)
+
 					_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
 
 					slog.Info("Sent chunk", "chunk", chunk)
