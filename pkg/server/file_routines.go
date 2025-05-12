@@ -1,15 +1,127 @@
 package server
 
 import (
+	"encoding/base64"
+	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/server/validator"
 	"log/slog"
 	"net"
+	"os"
+	"path/filepath"
 	"strconv"
+	"sync"
 )
+
+// FileWriter manages writing chunks to a file in a streaming manner
+type FileWriter struct {
+	file          *os.File
+	mutex         sync.Mutex
+	currentChunk  int
+	requestId     string
+	totalChunks   int
+	resourcesPath string
+}
+
+// NewFileWriter creates a new FileWriter instance
+func NewFileWriter(requestId string) (*FileWriter, error) {
+	// Create resources directory if it doesn't exist
+	resourcesPath := "resources"
+	if _, err := os.Stat(resourcesPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(resourcesPath, 0755); err != nil {
+			return nil, err
+		}
+	}
+
+	// Create a PDF file in the resources directory
+	filePath := filepath.Join(resourcesPath, requestId+".pdf")
+	file, err := os.Create(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	slog.Info("[File saving] Created file", slog.String("path", filePath))
+
+	return &FileWriter{
+		file:          file,
+		mutex:         sync.Mutex{},
+		currentChunk:  0,
+		requestId:     requestId,
+		totalChunks:   0,
+		resourcesPath: resourcesPath,
+	}, nil
+}
+
+// WriteChunk writes a chunk to the file if it's in the correct order
+func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
+	fw.mutex.Lock()
+	defer fw.mutex.Unlock()
+
+	// Get chunk number and total chunks
+	chunkStr := req.Headers.XHeader["X-Chunk"]
+	chunk, err := strconv.Atoi(chunkStr)
+	if err != nil {
+		return err
+	}
+
+	// Update total chunks if available
+	if endStr, ok := req.Headers.XHeader["X-End"]; ok {
+		if end, err := strconv.Atoi(endStr); err == nil {
+			fw.totalChunks = end
+		}
+	}
+
+	// Check if this is the chunk we're expecting
+	if chunk != fw.currentChunk+1 {
+		return nil // Not an error, just not the chunk we're expecting
+	}
+
+	// Decode base64 content
+	decodedData, err := base64.StdEncoding.DecodeString(req.Body)
+	if err != nil {
+		return err
+	}
+
+	// Write to file
+	_, err = fw.file.Write(decodedData)
+	if err != nil {
+		return err
+	}
+
+	// Update current chunk
+	fw.currentChunk = chunk
+
+	slog.Info("[File saving] Wrote chunk to file", 
+		slog.Int("chunk", chunk), 
+		slog.Int("totalChunks", fw.totalChunks),
+		slog.String("requestId", fw.requestId))
+
+	// If this is the last chunk, close the file
+	if fw.totalChunks > 0 && fw.currentChunk >= fw.totalChunks {
+		slog.Info("[File saving] All chunks received, closing file", 
+			slog.String("requestId", fw.requestId))
+		return fw.file.Close()
+	}
+
+	return nil
+}
+
+// Close closes the file
+func (fw *FileWriter) Close() error {
+	fw.mutex.Lock()
+	defer fw.mutex.Unlock()
+
+	if fw.file != nil {
+		return fw.file.Close()
+	}
+	return nil
+}
 
 func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 	var currentChunk = 0
+	var fileWriter *FileWriter
+	var fileWriterMutex sync.Mutex
+
 	go func() {
 		for {
 			slog.Info("[File saving] Waiting for message on port", slog.Int("port", newConn.LocalAddr().(*net.UDPAddr).Port))
@@ -55,8 +167,41 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 			if req.Information.Method == "CHUNK" {
 				currentChunk++
 				req.Headers.XHeader["X-Chunk"] = strconv.Itoa(currentChunk)
+
+				// Initialize file writer if not already done
+				fileWriterMutex.Lock()
+				if fileWriter == nil {
+					var initErr error
+					fileWriter, initErr = NewFileWriter(req.Information.Id.String())
+					if initErr != nil {
+						slog.Error("[File saving] Error initializing file writer", slog.String("error", initErr.Error()))
+						fileWriterMutex.Unlock()
+						continue
+					}
+				}
+				fileWriterMutex.Unlock()
+
+				// Write chunk to file
+				if err := fileWriter.WriteChunk(req); err != nil {
+					slog.Error("[File saving] Error writing chunk to file", slog.String("error", err.Error()))
+				}
+
+				// Forward the request to the request handler
 				requests <- req
 				slog.Info("[File saving] Received chunk", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
+			} else if req.Information.Method == "END" {
+				// Close the file when END method is received
+				fileWriterMutex.Lock()
+				if fileWriter != nil {
+					if err := fileWriter.Close(); err != nil {
+						slog.Error("[File saving] Error closing file", slog.String("error", err.Error()))
+					}
+					fileWriter = nil
+				}
+				fileWriterMutex.Unlock()
+
+				requests <- req
+				slog.Info("[File saving] Received END request, file closed")
 			}
 		}
 	}()

@@ -118,9 +118,24 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 					continue
 				}
 
-				_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
+				for retry := 0; retry < 20; retry++ {
+					_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
 
-				time.Sleep(10 * time.Millisecond)
+					if chunk < len(s.receivedResponse) && s.receivedResponse[chunk] > 0 {
+						slog.Info("Chunk sent successfully", "chunk", chunk)
+						break
+					} else {
+						slog.Warn("Chunk not acknowledged, retrying", "chunk", chunk, "attempt", retry+1)
+					}
+
+					time.Sleep(200 * time.Millisecond)
+
+					if retry == 20 {
+						slog.Error("Max retries reached, stopping sending", "chunk", chunk)
+						s.stopSending <- true
+						break
+					}
+				}
 			} else {
 				slog.Error("Chunk index out of bounds", "chunk", chunk)
 
@@ -136,6 +151,8 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 				}
 
 				_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
+
+				s.stopSending <- true
 			}
 		}
 	}(fileContent)
@@ -187,7 +204,9 @@ func (s *FileService) startListeningRoutine() {
 				slog.Error("Error converting chunk to int", slog.String("error", err.Error()))
 			}
 
-			s.currentChunk <- currentChunk
+			s.receivedResponse = append(s.receivedResponse, currentChunk)
+
+			s.currentChunk <- currentChunk + 1
 		}
 	}()
 }
