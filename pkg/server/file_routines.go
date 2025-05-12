@@ -144,6 +144,33 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				continue
 			}
 
+			if req.Information.Method == "END" {
+				fileWriterMutex.Lock()
+				if fileWriter != nil {
+					if err := fileWriter.Close(); err != nil {
+						slog.Error("[File saving] Error closing file", slog.String("error", err.Error()))
+					}
+					fileWriter = nil
+				}
+				fileWriterMutex.Unlock()
+
+				encodedSha, err := parser.EncodeSha("/resources/" + req.Information.Id.String() + ".pdf")
+
+				if err != nil {
+					slog.Error("[File saving] Error encoding SHA", slog.String("error", err.Error()))
+					continue
+				}
+
+				if encodedSha != req.Body {
+					slog.Error("[File saving] SHA mismatch", slog.String("expected", req.Body), slog.String("calculated", encodedSha))
+					req.Information.Method = "NACK"
+				}
+
+				requests <- req
+				slog.Info("[File saving] Received END request, file closed")
+				return
+			}
+
 			if err = validator.ValidateFileReq(req, currentChunk); err != nil {
 				slog.Error("[File saving] Error validating request in file routine", slog.String("error", err.Error()))
 				continue
@@ -190,29 +217,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				requests <- req
 				slog.Info("[File saving] Received chunk", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
 			} else if req.Information.Method == "END" {
-				fileWriterMutex.Lock()
-				if fileWriter != nil {
-					if err := fileWriter.Close(); err != nil {
-						slog.Error("[File saving] Error closing file", slog.String("error", err.Error()))
-					}
-					fileWriter = nil
-				}
-				fileWriterMutex.Unlock()
 
-				encodedSha, err := parser.EncodeSha("/resources/" + req.Information.Id.String() + ".pdf")
-
-				if err != nil {
-					slog.Error("[File saving] Error encoding SHA", slog.String("error", err.Error()))
-					continue
-				}
-
-				if encodedSha != req.Body {
-					slog.Error("[File saving] SHA mismatch", slog.String("expected", req.Body), slog.String("calculated", encodedSha))
-					req.Information.Method = "NACK"
-				}
-
-				requests <- req
-				slog.Info("[File saving] Received END request, file closed")
 			}
 		}
 	}()

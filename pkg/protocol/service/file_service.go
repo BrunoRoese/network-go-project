@@ -107,7 +107,7 @@ func (s *FileService) startRoutines(fileContent []string) {
 func (s *FileService) startSendingRoutine(fileContent []string) {
 	go func(fileContent []string) {
 		for chunk := range s.currentChunk {
-			if chunk <= len(fileContent) {
+			if chunk < len(fileContent) {
 				currentChunk := fileContent[chunk]
 				slog.Info("Sending chunk", "chunk", currentChunk)
 
@@ -160,7 +160,11 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 					continue
 				}
 
-				_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
+				for retry := 0; retry < 20; retry++ {
+					_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
+
+					time.Sleep(200 * time.Millisecond)
+				}
 			}
 		}
 	}(fileContent)
