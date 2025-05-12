@@ -21,6 +21,7 @@ type FileWriter struct {
 	requestId     string
 	totalChunks   int
 	resourcesPath string
+	writtenChunks []string
 }
 
 // NewFileWriter creates a new FileWriter instance
@@ -57,6 +58,13 @@ func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
 	fw.mutex.Lock()
 	defer fw.mutex.Unlock()
 
+	for _, check := range fw.writtenChunks {
+		if check == req.Headers.XHeader["X-Checksum"] {
+			slog.Info("[File saving] Chunk already written, skipping", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
+			return nil
+		}
+	}
+
 	// Get chunk number and total chunks
 	chunkStr := req.Headers.XHeader["X-Chunk"]
 	chunk, err := strconv.Atoi(chunkStr)
@@ -87,6 +95,8 @@ func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
 	if err != nil {
 		return err
 	}
+
+	fw.writtenChunks = append(fw.writtenChunks, req.Headers.XHeader["X-Checksum"])
 
 	// Update current chunk
 	fw.currentChunk = chunk
@@ -126,6 +136,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 		for {
 			slog.Info("[File saving] Waiting for message on port", slog.Int("port", newConn.LocalAddr().(*net.UDPAddr).Port))
 			buffer := make([]byte, 2048)
+			fileWriter.writtenChunks = make([]string, 0)
 			n, _, err := newConn.ReadFromUDPAddrPort(buffer)
 
 			if err != nil {

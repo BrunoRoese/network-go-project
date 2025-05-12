@@ -204,6 +204,7 @@ func (s *FileService) startListeningRoutine() {
 			if req.Information.Method == "NACK" || req.Information.Method == "END" {
 				slog.Error("Received NACK or END, stopping sending", slog.String("method", req.Information.Method))
 				s.stopSending <- true
+				return
 			}
 
 			slog.Info("Parsed source", "ip", ip, "port", port)
