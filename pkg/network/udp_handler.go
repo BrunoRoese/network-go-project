@@ -35,12 +35,6 @@ func SendRequest(ip string, port int, data []byte) (string, error) {
 		return "", err
 	}
 
-	buffer := make([]byte, 1024)
-	_, _, err = conn.ReadFromUDP(buffer)
-	if err != nil {
-		return "", err
-	}
-
 	return "", nil
 }
 
