@@ -33,6 +33,15 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				slog.Error("[File saving] Error handling request", slog.String("error", err.Error()))
 				continue
 			}
+			var currentChunk int
+			if req.Information.Method == "CHUNK" {
+				chunk, err := strconv.Atoi(req.Headers.XHeader["X-Chunk"])
+				if err != nil {
+					slog.Error("[File saving] Error converting chunk to int", slog.String("error", err.Error()))
+					continue
+				}
+				currentChunk = chunk
+			}
 
 			err = validator.ValidateFileReq(req, lastRecChunk[req.Information.Id.String()])
 			if err != nil {
@@ -41,13 +50,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 			}
 
 			if req.Information.Method == "CHUNK" {
-				chunk, err := strconv.Atoi(req.Headers.XHeader["X-Chunk"])
-				if err != nil {
-					slog.Error("[File saving] Error converting chunk to int", slog.String("error", err.Error()))
-					continue
-				}
-
-				lastRecChunk[req.Information.Id.String()] = chunk
+				lastRecChunk[req.Information.Id.String()] = currentChunk
 				slog.Info("[File saving] Received chunk", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
 			}
 
