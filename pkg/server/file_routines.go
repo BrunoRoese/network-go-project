@@ -34,6 +34,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				slog.Error("[File saving] Error handling request", slog.String("error", err.Error()))
 				continue
 			}
+
 			var currentChunk int
 			if req.Information.Method == "CHUNK" {
 				chunk, err := strconv.Atoi(req.Headers.XHeader["X-Chunk"])
@@ -44,19 +45,25 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				currentChunk = chunk
 			}
 
-			err = validator.ValidateFileReq(req, lastRecChunk[req.Information.Id.String()])
-			if err != nil {
+			if err = validator.ValidateFileReq(req, lastRecChunk[req.Information.Id.String()]); err != nil {
 				slog.Error("[File saving] Error validating request in file routine", slog.String("error", err.Error()))
 				continue
+			}
+
+			if inOrder, err := validator.CheckOrder(*req, lastRecChunk[req.Information.Id.String()]); !inOrder {
+				if err != nil {
+					slog.Error("[File saving] Error checking order", slog.String("error", err.Error()))
+					req.Headers.XHeader["X-Chunk"] = strconv.Itoa(lastRecChunk[req.Information.Id.String()])
+					requests <- req
+					continue
+				}
+				slog.Info("[File saving] Ignoring chunk that is order")
 			}
 
 			if req.Information.Method == "CHUNK" {
 				lastRecChunk[req.Information.Id.String()] = currentChunk
 				slog.Info("[File saving] Received chunk", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
 			}
-
-			req.Headers.XHeader["X-Chunk"] = strconv.Itoa(lastRecChunk[req.Information.Id.String()])
-			requests <- req
 		}
 	}()
 }

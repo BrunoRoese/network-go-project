@@ -22,7 +22,7 @@ type FileService struct {
 
 	currentChunk     chan int
 	stopSending      chan bool
-	receivedResponse map[int]bool
+	receivedResponse []int
 }
 
 func (s *FileService) StartTransfer(ip string, filePath string) error {
@@ -32,7 +32,7 @@ func (s *FileService) StartTransfer(ip string, filePath string) error {
 	}
 	s.FilePath = filePath
 	s.stopSending = make(chan bool)
-	s.receivedResponse = make(map[int]bool)
+	s.receivedResponse = make([]int, 0)
 
 	specifiedClient := client.FindByIp(ip)
 
@@ -101,58 +101,46 @@ func (s *FileService) startRoutines(fileContent []string) {
 func (s *FileService) startSendingRoutine(fileContent []string) {
 	go func(fileContent []string) {
 		for chunk := range s.currentChunk {
-			slog.Info("Sending chunk", "chunk", chunk)
-
-			if chunk >= 0 && chunk < len(fileContent) {
-				currentChunk := fileContent[chunk]
-				slog.Info("Sending chunk", "chunk", currentChunk)
-
-				headers := map[string]string{
-					"X-Chunk":   strconv.Itoa(chunk),
-					"requestId": s.currentId.String(),
+			for chunkI := 0; chunkI < len(fileContent); chunkI++ {
+				for _, rChunk := range s.receivedResponse {
+					if rChunk < chunkI {
+						slog.Info("Chunk received, out of order detected", "ExpectedChunk", chunkI)
+						slog.Info("Received chunk", "chunk", s.receivedResponse[chunkI])
+						chunkI = s.receivedResponse[chunkI]
+					}
 				}
 
-				res, err := parser.ParseProtocol(&protocol.Chunk{}, s.conn, currentChunk, headers)
+				if chunk >= 0 && chunk < len(fileContent) {
+					currentChunk := fileContent[chunk]
+					slog.Info("Sending chunk", "chunk", currentChunk)
 
-				if err != nil {
-					slog.Error("Error marshalling request", slog.String("error", err.Error()))
-					continue
-				}
-
-				_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
-
-				time.Sleep(time.Millisecond * 200)
-
-				for retries := 0; retries < 3; retries++ {
-					if s.receivedResponse[chunk] {
-						slog.Info("Already received response for chunk, skipping retry", "chunk", chunk)
-						break
+					headers := map[string]string{
+						"X-Chunk":   strconv.Itoa(chunk),
+						"requestId": s.currentId.String(),
 					}
 
-					slog.Info("Sending chunk to", "ip", s.clientAddr.IP.String(), "port", s.clientAddr.Port)
+					res, err := parser.ParseProtocol(&protocol.Chunk{}, s.conn, currentChunk, headers)
+
+					if err != nil {
+						slog.Error("Error marshalling request", slog.String("error", err.Error()))
+						continue
+					}
 
 					_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
 
-					slog.Info("Sent chunk", "chunk", chunk)
-
-					time.Sleep(time.Second * 5)
-				}
-
-				if s.receivedResponse[chunk] == false {
-					slog.Error("Chunk not received after 3 retries, stopping")
+					time.Sleep(100 * time.Millisecond)
+				} else {
+					slog.Error("Chunk index out of bounds", "chunk", chunk)
 					s.stopSending <- true
 				}
-			} else {
-				slog.Error("Chunk index out of bounds", "chunk", chunk)
-				s.stopSending <- true
 			}
+
 		}
 	}(fileContent)
 }
 
 func (s *FileService) startListeningRoutine() {
 	slog.Info("Starting listening routine")
-	currentChunk := 0
 	go func() {
 		for {
 			buffer := make([]byte, 1024)
@@ -191,10 +179,15 @@ func (s *FileService) startListeningRoutine() {
 				}
 			}
 
-			s.receivedResponse[currentChunk] = true
-			slog.Info("Response received for chunk", "chunk", currentChunk)
+			currentChunk, err := strconv.Atoi(req.Headers.XHeader["X-Chunk"])
 
-			currentChunk++
+			if err != nil {
+				slog.Error("Error converting chunk to int", slog.String("error", err.Error()))
+				continue
+			}
+
+			s.receivedResponse[currentChunk] = currentChunk
+			slog.Info("Response received for chunk", "chunk", currentChunk)
 
 			s.currentChunk <- currentChunk
 		}
