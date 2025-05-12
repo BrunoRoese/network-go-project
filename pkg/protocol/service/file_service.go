@@ -119,6 +119,10 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 					continue
 				}
 
+				_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
+
+				time.Sleep(time.Millisecond * 200)
+
 				for retries := 0; retries < 3; retries++ {
 					if s.receivedResponse[chunk] {
 						slog.Info("Already received response for chunk, skipping retry", "chunk", chunk)
