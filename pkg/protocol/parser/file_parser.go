@@ -13,7 +13,7 @@ func ParseFile(filePath string) ([]string, error) {
 	}
 	defer file.Close()
 
-	const chunkSize = 512
+	const chunkSize = 4096
 	buffer := make([]byte, chunkSize)
 	var base64Chunks []string
 

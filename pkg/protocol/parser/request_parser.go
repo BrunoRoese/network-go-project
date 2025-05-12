@@ -25,6 +25,19 @@ func ParseRequest(data []byte) (*protocol.Request, error) {
 	return &req, nil
 }
 
+func ParseLargeRequest(data []byte) (*protocol.Request, error) {
+	decoder := json.NewDecoder(strings.NewReader(string(data)))
+	req := &protocol.Request{}
+
+	err := decoder.Decode(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 func ParseSource(source string) (string, int, error) {
 	parts := strings.Split(source, ":")
 	if len(parts) != 2 {
