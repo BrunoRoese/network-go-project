@@ -154,7 +154,8 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				}
 				fileWriterMutex.Unlock()
 
-				filePath := "/resources/" + req.Information.Id.String() + ".pdf"
+				resourcesPath := "resources"
+				filePath := filepath.Join(resourcesPath, req.Information.Id.String()+".pdf")
 				if _, err := os.Stat(filePath); os.IsNotExist(err) {
 					slog.Error("[File saving] File does not exist", slog.String("path", filePath))
 					return
@@ -222,8 +223,6 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				// Forward the request to the request handler
 				requests <- req
 				slog.Info("[File saving] Received chunk", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
-			} else if req.Information.Method == "END" {
-
 			}
 		}
 	}()
