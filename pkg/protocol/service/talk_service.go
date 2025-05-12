@@ -23,7 +23,7 @@ func Talk(ip string, message string) {
 	}
 	defer conn.Close()
 
-	jsonRequest, err := parser.ParseProtocol(&protocol.Talk{}, conn, message)
+	jsonRequest, err := parser.ParseProtocol(&protocol.Talk{}, conn, message, nil)
 
 	if err != nil {
 		slog.Error("Error marshalling request", slog.String("error", err.Error()))

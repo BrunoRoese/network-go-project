@@ -102,6 +102,21 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 			if chunk >= 0 && chunk < len(fileContent) {
 				currentChunk := fileContent[chunk]
 				slog.Info("Sending chunk", "chunk", currentChunk)
+
+				headers := map[string]string{
+					"X-Chunk":      string(rune(chunk)),
+					"X-Chunk-Size": string(rune(len(currentChunk))),
+					"requestId":    s.currentId.String(),
+				}
+
+				res, err := parser.ParseProtocol(&protocol.Chunk{}, s.conn, currentChunk, headers)
+
+				if err != nil {
+					slog.Error("Error marshalling request", slog.String("error", err.Error()))
+					continue
+				}
+
+				_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
 			} else {
 				slog.Error("Chunk index out of bounds", "chunk", chunk)
 				s.stopSending <- true
