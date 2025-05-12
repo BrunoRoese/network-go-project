@@ -8,7 +8,7 @@ type NACK struct {
 }
 
 func (n *NACK) Name() string {
-	return "ACK"
+	return "NACK"
 }
 
 func (n *NACK) BuildRequest(headers map[string]string, body string, source net.UDPAddr) Request {

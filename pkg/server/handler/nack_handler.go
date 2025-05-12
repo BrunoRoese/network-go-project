@@ -22,7 +22,7 @@ func HandleNackReq(request *protocol.Request) *protocol.Request {
 
 	server, _ := model.GetServer()
 
-	res := (&protocol.End{}).BuildRequest(headers, "ERROR", *server.FileAddrMap[request.Information.Id.String()].LocalAddr().(*net.UDPAddr))
+	res := (&protocol.NACK{}).BuildRequest(headers, "ERROR", *server.FileAddrMap[request.Information.Id.String()].LocalAddr().(*net.UDPAddr))
 
 	return &res
 }
