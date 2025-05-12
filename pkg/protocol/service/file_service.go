@@ -101,7 +101,7 @@ func (s *FileService) startRoutines(fileContent []string) {
 func (s *FileService) startSendingRoutine(fileContent []string) {
 	go func(fileContent []string) {
 		for chunk := range s.currentChunk {
-			if chunk < len(fileContent) {
+			if chunk <= len(fileContent) {
 				currentChunk := fileContent[chunk]
 				slog.Info("Sending chunk", "chunk", currentChunk)
 
