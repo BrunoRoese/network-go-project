@@ -1,6 +1,8 @@
 package service
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/BrunoRoese/socket/pkg/network"
@@ -105,10 +107,14 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 				currentChunk := fileContent[chunk]
 				slog.Info("Sending chunk", "chunk", currentChunk)
 
+				checksumBytes := sha256.Sum256([]byte(currentChunk))
+				checksum := hex.EncodeToString(checksumBytes[:])
+
 				headers := map[string]string{
-					"X-Chunk":   strconv.Itoa(chunk),
-					"X-End":     strconv.Itoa(len(fileContent)),
-					"requestId": s.currentId.String(),
+					"X-Chunk":    strconv.Itoa(chunk),
+					"X-Checksum": checksum,
+					"X-End":      strconv.Itoa(len(fileContent)),
+					"requestId":  s.currentId.String(),
 				}
 
 				res, err := parser.ParseProtocol(&protocol.Chunk{}, s.conn, currentChunk, headers)

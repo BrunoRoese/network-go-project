@@ -1,6 +1,8 @@
 package validator
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/google/uuid"
@@ -35,6 +37,14 @@ func ValidateFileReq(req *protocol.Request, lastChunk int) error {
 
 	if req.Information.Method == "CHUNK" && lastChunk == reqChunk {
 		return errors.New("Duplicated chunk found")
+	}
+
+	expectedChecksum := req.Headers.XHeader["X-Checksum"]
+	calculatedChecksum := sha256.Sum256([]byte(req.Body))
+	calculatedChecksumStr := hex.EncodeToString(calculatedChecksum[:])
+
+	if expectedChecksum != calculatedChecksumStr {
+		return errors.New("[CHECKSUM] checksum invalido para o chunk")
 	}
 
 	return nil
