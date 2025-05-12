@@ -6,8 +6,6 @@ import (
 	"github.com/google/uuid"
 	"log/slog"
 	"strconv"
-	"sync"
-	"time"
 )
 
 func ValidateFileReq(req *protocol.Request, lastChunk int) error {
@@ -59,28 +57,4 @@ func CheckOrder(req protocol.Request, lastChunk int) (bool, error) {
 	}
 
 	return true, nil
-}
-
-var (
-	processedRequests = make(map[uuid.UUID]time.Time)
-	mu                sync.Mutex
-)
-
-func IsDuplicate(req *protocol.Request) bool {
-	mu.Lock()
-	defer mu.Unlock()
-
-	// Get the current time
-	now := time.Now()
-
-	// Clean up old entries (older than 1 second)
-	for id, timestamp := range processedRequests {
-		if now.Sub(timestamp) > time.Second {
-			delete(processedRequests, id)
-		}
-	}
-
-	// Record this request
-	processedRequests[req.Information.Id] = now
-	return false
 }

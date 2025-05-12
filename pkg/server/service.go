@@ -19,7 +19,7 @@ var (
 	Instance    *Service
 	defaultPort = 8080
 
-	requests  = make(chan *protocol.Request, 100)
+	requests  = make(chan *protocol.Request, 1000)
 	responses = make(chan model.Response, 50)
 )
 
