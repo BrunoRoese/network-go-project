@@ -216,9 +216,6 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 			}
 
 			if req.Information.Method == "CHUNK" {
-				currentChunk++
-				req.Headers.XHeader["X-Chunk"] = strconv.Itoa(currentChunk)
-
 				fileWriterMutex.Lock()
 				if fileWriter == nil {
 					var initErr error
@@ -236,7 +233,8 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 					slog.Error("[File saving] Error writing chunk to file", slog.String("error", err.Error()))
 				}
 
-				// Forward the request to the request handler
+				req.Headers.XHeader["X-Chunk"] = strconv.Itoa(currentChunk + 1)
+				currentChunk++
 				requests <- req
 				slog.Info("[File saving] Received chunk", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
 			}
