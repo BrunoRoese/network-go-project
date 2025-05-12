@@ -81,7 +81,10 @@ func (s *FileService) StartTransfer(ip string, filePath string) error {
 }
 
 func (s *FileService) signalStart(specifiedClient *client.Client) error {
-	req := (&protocol.File{}).BuildRequest(nil, s.FilePath, *s.conn.LocalAddr().(*net.UDPAddr))
+	headers := map[string]string{
+		"X-Chunk": "0",
+	}
+	req := (&protocol.File{}).BuildRequest(headers, s.FilePath, *s.conn.LocalAddr().(*net.UDPAddr))
 
 	s.currentId = req.Information.Id
 
