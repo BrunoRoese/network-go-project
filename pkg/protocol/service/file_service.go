@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"log/slog"
 	"net"
+	"strconv"
 )
 
 type FileService struct {
@@ -104,9 +105,8 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 				slog.Info("Sending chunk", "chunk", currentChunk)
 
 				headers := map[string]string{
-					"X-Chunk":      string(rune(chunk)),
-					"X-Chunk-Size": string(rune(len(currentChunk))),
-					"requestId":    s.currentId.String(),
+					"X-Chunk":   strconv.Itoa(chunk),
+					"requestId": s.currentId.String(),
 				}
 
 				res, err := parser.ParseProtocol(&protocol.Chunk{}, s.conn, currentChunk, headers)

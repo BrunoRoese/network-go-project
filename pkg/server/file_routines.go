@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	lastRecChunk = -1
+	lastRecChunk map[string]int = map[string]int{}
 )
 
 func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
@@ -31,7 +31,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				continue
 			}
 
-			err = validator.ValidateFileReq(req, lastRecChunk)
+			err = validator.ValidateFileReq(req, lastRecChunk[req.Information.Id.String()])
 
 			if err != nil {
 				slog.Error("[File saving] Error validating request in file routine", slog.String("error", err.Error()))
@@ -46,11 +46,11 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 					continue
 				}
 
-				lastRecChunk = chunk
+				lastRecChunk[req.Information.Id.String()] = chunk
 				slog.Info("[File saving] Received chunk", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
 			}
 
-			req.Headers.XHeader["X-Chunk"] = strconv.Itoa(lastRecChunk)
+			req.Headers.XHeader["X-Chunk"] = strconv.Itoa(lastRecChunk[req.Information.Id.String()])
 
 			requests <- req
 		}
