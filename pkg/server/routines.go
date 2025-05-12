@@ -29,6 +29,20 @@ func (s *Service) startGeneralRoutine() {
 				continue
 			}
 
+			if req.Information.Method == "FILE" {
+				slog.Info("File request received, creating new connection")
+				newConn, err := network.CreateConn()
+
+				if err != nil {
+					slog.Error("Error creating new connection", slog.String("error", err.Error()))
+					continue
+				}
+
+				s.startFileSavingRoutine(newConn)
+
+				req.Information.Source = newConn.LocalAddr().String()
+			}
+
 			slog.Info("Received message", slog.String("request", req.String()))
 
 			requests <- req
@@ -39,7 +53,6 @@ func (s *Service) startGeneralRoutine() {
 func (s *Service) startDiscoveryRoutine() {
 	go func() {
 		for {
-			//slog.Info("Waiting for message")
 			buffer := make([]byte, 1024)
 			n, addr, err := s.Server.DiscoveryConn.ReadFromUDPAddrPort(buffer)
 
