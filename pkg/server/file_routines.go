@@ -27,6 +27,8 @@ type FileWriter struct {
 	writtenChunks []string
 }
 
+var chunkMap = make(map[int]string)
+
 // NewFileWriter creates a new FileWriter instance
 func NewFileWriter(requestId string) (*FileWriter, error) {
 	resourcesPath := "resources"
@@ -55,7 +57,7 @@ func NewFileWriter(requestId string) (*FileWriter, error) {
 	}, nil
 }
 
-func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
+func (fw *FileWriter) WriteChunk(req *protocol.Request, currentChunk int) error {
 	fw.mutex.Lock()
 	defer fw.mutex.Unlock()
 
@@ -63,6 +65,20 @@ func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
 		if check == req.Headers.XHeader["X-Checksum"] {
 			slog.Info("[File saving] Chunk already written, skipping", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
 			return nil
+		}
+	}
+
+	var decodedDataList []byte
+
+	for key, value := range chunkMap {
+		if key < currentChunk {
+			slog.Error("[File saving] Chunk out of order", slog.Int("key", key))
+			dData, err := base64.StdEncoding.DecodeString(value)
+			if err != nil {
+				return err
+			}
+
+			decodedDataList = append(decodedDataList, dData...)
 		}
 	}
 
@@ -87,7 +103,9 @@ func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
 		return err
 	}
 
-	_, err = fw.file.Write(decodedData)
+	decodedDataList = append(decodedDataList, decodedData...)
+
+	_, err = fw.file.Write(decodedDataList)
 	if err != nil {
 		return err
 	}
@@ -132,6 +150,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 	var fileWriter *FileWriter
 	var fileWriterMutex sync.Mutex
 	chunks := make([]int, 0)
+	expectedChunk := 0
 
 	go func() {
 		for {
@@ -162,6 +181,13 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 					slog.Info("[File saving] Chunk already received, skipping", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
 					continue
 				}
+			}
+
+			if currentChunk != expectedChunk {
+				slog.Error("[File saving] Chunk out of order", slog.Int("expected", expectedChunk), slog.Int("received", currentChunk))
+				chunkMap[currentChunk] = req.Body
+				chunks = append(chunks, currentChunk)
+				continue
 			}
 
 			if err != nil {
@@ -219,10 +245,11 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 					}
 				}
 				fileWriterMutex.Unlock()
+				expectedChunk++
 				chunks = append(chunks, currentChunk)
 
 				// Write chunk to file
-				if err := fileWriter.WriteChunk(req); err != nil {
+				if err := fileWriter.WriteChunk(req, currentChunk); err != nil {
 					slog.Error("[File saving] Error writing chunk to file", slog.String("error", err.Error()))
 				}
 
