@@ -26,15 +26,13 @@ type FileWriter struct {
 
 // NewFileWriter creates a new FileWriter instance
 func NewFileWriter(requestId string) (*FileWriter, error) {
-	// Create resources directory if it doesn't exist
 	resourcesPath := "resources"
 	if _, err := os.Stat(resourcesPath); os.IsNotExist(err) {
 		if err := os.MkdirAll(resourcesPath, 0755); err != nil {
 			return nil, err
 		}
 	}
-
-	// Create a PDF file in the resources directory
+	
 	filePath := filepath.Join(resourcesPath, requestId+".pdf")
 	file, err := os.Create(filePath)
 	if err != nil {
