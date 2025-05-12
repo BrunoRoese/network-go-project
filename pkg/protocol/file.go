@@ -16,7 +16,7 @@ func (f *File) BuildRequest(headers map[string]string, body string, source net.U
 		Information: Information{
 			Method: f.Name(),
 			Id:     uuid.New(),
-			Source: source.IP.String(),
+			Source: source.String(),
 		},
 		Headers: Header{
 			XHeader:     headers,

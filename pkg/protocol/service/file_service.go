@@ -25,6 +25,7 @@ func (s *FileService) StartTransfer(ip string, filePath string) error {
 		return err
 	}
 	s.FilePath = filePath
+	s.stopSending = make(chan bool)
 
 	specifiedClient := client.FindByIp(ip)
 
@@ -76,17 +77,13 @@ func (s *FileService) signalStart(specifiedClient *client.Client) error {
 		return err
 	}
 
-	_, err = network.SendRequest(specifiedClient.Ip, specifiedClient.Port, jsonReq)
-	if err != nil {
-		return err
-	}
+	_, _ = network.SendRequest(specifiedClient.Ip, specifiedClient.Port, jsonReq)
 
 	return nil
 }
 
 func (s *FileService) startRoutines(fileContent []string) {
 	s.currentChunk = make(chan int)
-	s.stopSending = make(chan bool)
 
 	s.startSendingRoutine(fileContent)
 	s.startListeningRoutine()
