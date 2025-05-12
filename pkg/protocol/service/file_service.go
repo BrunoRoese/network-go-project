@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
@@ -13,6 +14,7 @@ import (
 	"log/slog"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -112,7 +114,7 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 		for chunk := range s.currentChunk {
 			if chunk < len(fileContent) {
 				currentChunk := fileContent[chunk]
-				slog.Info("Sending chunk", "chunk", currentChunk)
+				//slog.Info("Sending chunk", "chunk", currentChunk)
 
 				checksumBytes := sha256.Sum256([]byte(currentChunk))
 				checksum := hex.EncodeToString(checksumBytes[:])
@@ -127,7 +129,7 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 				res, err := parser.ParseProtocol(&protocol.Chunk{}, s.conn, currentChunk, headers)
 
 				if err != nil {
-					slog.Error("Error marshalling request", slog.String("error", err.Error()))
+					//slog.Error("Error marshalling request", slog.String("error", err.Error()))
 					continue
 				}
 
@@ -142,21 +144,21 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 					}
 
 					if send {
-						slog.Info("Chunk sent successfully", "chunk", chunk)
+						//slog.Info("Chunk sent successfully", "chunk", chunk)
 						break
 					} else {
-						slog.Error("Chunk not sent, retrying", "chunk", chunk)
+						//slog.Error("Chunk not sent, retrying", "chunk", chunk)
 					}
 					time.Sleep(200 * time.Millisecond)
 
 					if retry == 20 {
-						slog.Error("Max retries reached, stopping sending", "chunk", chunk)
+						//slog.Error("Max retries reached, stopping sending", "chunk", chunk)
 						s.stopSending <- true
 						break
 					}
 				}
 			} else {
-				slog.Error("Chunk index out of bounds", "chunk", chunk)
+				//slog.Error("Chunk index out of bounds", "chunk", chunk)
 
 				headers := map[string]string{
 					"requestId": s.currentId.String(),
@@ -165,7 +167,7 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 				res, err := parser.ParseProtocol(&protocol.End{}, s.conn, s.encodedFile, headers)
 
 				if err != nil {
-					slog.Error("Error marshalling request", slog.String("error", err.Error()))
+					//slog.Error("Error marshalling request", slog.String("error", err.Error()))
 					continue
 				}
 
@@ -179,8 +181,8 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 	}(fileContent)
 }
 
-func (s *FileService) startListeningRoutine(fileContent []string) () {
-	slog.Info("Starting listening routine")
+func (s *FileService) startListeningRoutine(fileContent []string) {
+	//slog.Info("Starting listening routine")
 	chunkTrack := 0
 	go func(fileContent []string) {
 		for {
@@ -189,42 +191,53 @@ func (s *FileService) startListeningRoutine(fileContent []string) () {
 
 			if targetEnd > 0 {
 				percentage := (float64(receivedCount) / float64(targetEnd)) * 100
-				slog.Info("Progress", slog.Float64("percentage", percentage))
+				displayProgressBar(percentage)
 			}
 			buffer := make([]byte, 1024)
-			n, addr, err := s.conn.ReadFromUDPAddrPort(buffer)
+			n, _, err := s.conn.ReadFromUDPAddrPort(buffer)
 			if err != nil {
-				slog.Error("Error reading from UDP", slog.String("error", err.Error()))
+				//slog.Error("Error reading from UDP", slog.String("error", err.Error()))
 				return
 			}
 
-			slog.Info("Response received", "data", string(buffer[:n]), "from", addr.String())
+			//slog.Info("Response received", "data", string(buffer[:n]), "from", addr.String())
 			req, err := parser.ParseRequest(buffer[:n])
 
 			if err != nil {
-				slog.Error("Error parsing request", slog.String("error", err.Error()))
+				//slog.Error("Error parsing request", slog.String("error", err.Error()))
 				return
 			}
 
 			if req.Information.Id != s.currentId {
-				slog.Error("Invalid request ID", slog.String("expected", s.currentId.String()), slog.String("received", req.Information.Id.String()))
+				//slog.Error("Invalid request ID", slog.String("expected", s.currentId.String()), slog.String("received", req.Information.Id.String()))
 				return
 			}
 
 			ip, port, err := parser.ParseSource(req.Information.Source)
 
 			if err != nil {
-				slog.Error("Error parsing source", slog.String("error", err.Error()))
+				//slog.Error("Error parsing source", slog.String("error", err.Error()))
 				return
 			}
 
-			if req.Information.Method == "NACK" || req.Information.Method == "END" {
-				slog.Error("Received NACK or END, stopping sending", slog.String("method", req.Information.Method))
+			if req.Information.Method == "NACK" {
+				//slog.Error("Received NACK or END, stopping sending", slog.String("method", req.Information.Method))
+				displayProgressBar(100)
+				time.Sleep(150 * time.Millisecond)
+				slog.Info("Received NACK, file transfer failed")
 				s.stopSending <- true
 				return
 			}
 
-			slog.Info("Parsed source", "ip", ip, "port", port)
+			if req.Information.Method == "END" {
+				displayProgressBar(100)
+				time.Sleep(150 * time.Millisecond)
+				slog.Info("Received END, file transfer completed")
+				s.stopSending <- true
+				return
+			}
+
+			//slog.Info("Parsed source", "ip", ip, "port", port)
 
 			if s.clientAddr == nil {
 				s.clientAddr = &net.UDPAddr{
@@ -233,12 +246,12 @@ func (s *FileService) startListeningRoutine(fileContent []string) () {
 				}
 			}
 
-			slog.Info("Client address set", "ip", s.clientAddr.IP.String(), "port", s.clientAddr.Port)
+			//slog.Info("Client address set", "ip", s.clientAddr.IP.String(), "port", s.clientAddr.Port)
 			go func() {
 				receivedChunk, err := strconv.Atoi(req.Headers.XHeader["X-Chunk"])
 
 				if err != nil {
-					slog.Error("Error converting chunk to int", slog.String("error", err.Error()))
+					//slog.Error("Error converting chunk to int", slog.String("error", err.Error()))
 
 					s.currentChunk <- 0
 
@@ -250,19 +263,19 @@ func (s *FileService) startListeningRoutine(fileContent []string) () {
 				} else {
 					for _, chunk := range s.receivedResponse {
 						if chunk == receivedChunk {
-							slog.Info("Chunk already received, skipping", "chunk", receivedChunk)
+							//slog.Info("Chunk already received, skipping", "chunk", receivedChunk)
 							return
 						}
 						if chunk > receivedChunk {
-							slog.Info("Chunk already received, skipping", "chunk", receivedChunk)
+							//slog.Info("Chunk already received, skipping", "chunk", receivedChunk)
 							return
 						}
 					}
-					slog.Info("Chunk out of order, resending", "chunk", receivedChunk, "expected", chunkTrack)
+					//slog.Info("Chunk out of order, resending", "chunk", receivedChunk, "expected", chunkTrack)
 					chunkTrack = receivedChunk
 				}
 
-				slog.Info("receivedChunk", "chunk", receivedChunk, "chunkTrack", chunkTrack)
+				//slog.Info("receivedChunk", "chunk", receivedChunk, "chunkTrack", chunkTrack)
 
 				s.receivedResponse = append(s.receivedResponse, receivedChunk)
 
@@ -270,6 +283,19 @@ func (s *FileService) startListeningRoutine(fileContent []string) () {
 			}()
 		}
 	}(fileContent)
+}
+
+func displayProgressBar(percentage float64) {
+	barWidth := 50
+	if percentage < 0 {
+		percentage = 0
+	} else if percentage > 100 {
+		percentage = 100
+	}
+
+	progress := int(percentage / 100 * float64(barWidth))
+	bar := "[" + strings.Repeat("=", progress) + strings.Repeat(" ", barWidth-progress) + "]"
+	fmt.Printf("\r%s %.2f%%", bar, percentage)
 }
 
 func (s *FileService) close() {

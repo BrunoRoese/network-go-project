@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"log"
-	"log/slog"
 	"net"
 	"strconv"
 	"strings"
@@ -58,7 +57,7 @@ func ParseProtocol(protocol protocol.Protocol, conn *net.UDPConn, message string
 
 	request := protocol.BuildRequest(headers, message, *serverUdpAddr)
 
-	slog.Info("Parsed protocol", "request", request)
+	//slog.Info("Parsed protocol", "request", request)
 
 	jsonRequest, err := json.Marshal(request)
 
