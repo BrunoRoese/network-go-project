@@ -12,8 +12,9 @@ import (
 )
 
 type FileService struct {
-	FilePath string
-	conn     *net.UDPConn
+	FilePath   string
+	conn       *net.UDPConn
+	clientAddr *net.UDPAddr
 
 	currentChunk chan int
 	stopSending  chan bool
@@ -118,6 +119,27 @@ func (s *FileService) startListeningRoutine() {
 			}
 
 			slog.Info("Response received", "data", string(buffer[:n]), "from", addr.String())
+			req, err := parser.ParseRequest(buffer[:n])
+
+			if err != nil {
+				slog.Error("Error parsing request", slog.String("error", err.Error()))
+				return
+			}
+
+			ip, port, err := parser.ParseSource(req.Information.Source)
+
+			if err != nil {
+				slog.Error("Error parsing source", slog.String("error", err.Error()))
+				return
+			}
+
+			slog.Info("Parsed source", "ip", ip, "port", port)
+
+			s.clientAddr = &net.UDPAddr{
+				IP:   net.ParseIP(ip),
+				Port: port,
+			}
+
 			currentChunk++
 
 			s.currentChunk <- currentChunk
