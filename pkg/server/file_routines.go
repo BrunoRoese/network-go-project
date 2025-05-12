@@ -129,7 +129,7 @@ func (fw *FileWriter) Close() error {
 }
 
 func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
-	var currentChunk = 0
+	var currentChunk = -1
 	var fileWriter *FileWriter
 	var fileWriterMutex sync.Mutex
 
@@ -213,7 +213,6 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				currentChunk++
 				req.Headers.XHeader["X-Chunk"] = strconv.Itoa(currentChunk)
 
-				// Initialize file writer if not already done
 				fileWriterMutex.Lock()
 				if fileWriter == nil {
 					var initErr error

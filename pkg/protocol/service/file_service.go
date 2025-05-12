@@ -224,6 +224,12 @@ func (s *FileService) startListeningRoutine() {
 
 			s.receivedResponse = append(s.receivedResponse, currentChunk)
 
+			if currentChunk == 0 {
+				slog.Info("Received first chunk, starting sending routine")
+				s.currentChunk <- currentChunk
+				continue
+			}
+
 			s.currentChunk <- currentChunk + 1
 		}
 	}()
