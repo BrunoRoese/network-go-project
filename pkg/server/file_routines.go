@@ -32,11 +32,11 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				continue
 			}
 
-			if req.Information.Method == "END" {
+			if end, err := strconv.Atoi(req.Headers.XHeader["X-End"]); err == nil && end <= currentChunk {
 				slog.Info("[File saving] Received end of file request")
 				req.Headers.XHeader["X-Chunk"] = strconv.Itoa(currentChunk)
 				requests <- req
-				continue
+				return
 			}
 
 			if err = validator.ValidateFileReq(req, currentChunk); err != nil {

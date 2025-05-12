@@ -116,6 +116,7 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 
 				headers := map[string]string{
 					"X-Chunk":   strconv.Itoa(chunkI),
+					"X-End":     strconv.Itoa(len(fileContent)),
 					"requestId": s.currentId.String(),
 				}
 
