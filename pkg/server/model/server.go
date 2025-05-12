@@ -11,6 +11,7 @@ import (
 type Server struct {
 	DiscoveryAddr net.UDPAddr
 	GeneralAddr   net.UDPAddr
+	FileAddrMap   map[string]*net.UDPConn
 	DiscoveryConn *net.UDPConn
 	GeneralConn   *net.UDPConn
 	ClientService *client.Service

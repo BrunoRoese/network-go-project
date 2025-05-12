@@ -38,9 +38,9 @@ func (s *Service) startGeneralRoutine() {
 					continue
 				}
 
-				s.startFileSavingRoutine(newConn)
+				s.Server.FileAddrMap[req.Information.Id.String()] = newConn
 
-				req.Information.Source = newConn.LocalAddr().String()
+				s.startFileSavingRoutine(newConn)
 			}
 
 			slog.Info("Received message", slog.String("request", req.String()))
@@ -136,7 +136,7 @@ func (s *Service) sendResponseRoutine() {
 					slog.Info("Heartbeat response received, rewriting port to 8080")
 					port = 8080
 				}
-				network.SendRequest(ip, port, res.Res)
+				_, _ = network.SendRequest(ip, port, res.Res)
 			}(res)
 		}
 	}()
