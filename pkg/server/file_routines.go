@@ -1,7 +1,10 @@
 package server
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
+	"fmt"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/server/validator"
@@ -90,6 +93,12 @@ func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
 	}
 
 	fw.writtenChunks = append(fw.writtenChunks, req.Headers.XHeader["X-Checksum"])
+	checksum := req.Headers.XHeader["X-Checksum"]
+	calculated := sha256.Sum256([]byte(req.Body))
+	calculatedStr := hex.EncodeToString(calculated[:])
+	if checksum != calculatedStr {
+		return fmt.Errorf("[File saving] Checksum mismatch on chunk %d", fw.currentChunk+1)
+	}
 
 	fw.currentChunk = chunk
 
