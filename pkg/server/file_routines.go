@@ -15,6 +15,7 @@ var (
 func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 	go func() {
 		for {
+			slog.Info("[File saving] Waiting for message on port", slog.Int("port", newConn.LocalAddr().(*net.UDPAddr).Port))
 			buffer := make([]byte, 10000)
 			n, _, err := newConn.ReadFromUDPAddrPort(buffer)
 
