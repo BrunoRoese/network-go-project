@@ -14,7 +14,7 @@ func (s *Service) startGeneralRoutine() {
 	go func() {
 		for {
 			slog.Info("Waiting for message")
-			buffer := make([]byte, 1024)
+			buffer := make([]byte, 100000)
 			n, _, err := s.Server.GeneralConn.ReadFromUDPAddrPort(buffer)
 
 			if err != nil {
