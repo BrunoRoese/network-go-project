@@ -131,6 +131,7 @@ func (fw *FileWriter) Close() error {
 func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 	var fileWriter *FileWriter
 	var fileWriterMutex sync.Mutex
+	chunks := make([]int, 0)
 
 	go func() {
 		for {
@@ -155,6 +156,13 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 			}
 
 			currentChunk, err := strconv.Atoi(req.Headers.XHeader["X-Chunk"])
+
+			for _, c := range chunks {
+				if c == currentChunk {
+					slog.Info("[File saving] Chunk already received, skipping", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
+					continue
+				}
+			}
 
 			if err != nil {
 				slog.Error("[File saving] Error converting chunk to int", slog.String("error", err.Error()))
@@ -211,6 +219,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 					}
 				}
 				fileWriterMutex.Unlock()
+				chunks = append(chunks, currentChunk)
 
 				// Write chunk to file
 				if err := fileWriter.WriteChunk(req); err != nil {

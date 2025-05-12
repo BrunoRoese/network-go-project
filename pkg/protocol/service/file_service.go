@@ -133,14 +133,20 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 
 				for retry := 0; retry < 20; retry++ {
 					_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
+					send := false
 
-					if chunk < len(s.receivedResponse) && s.receivedResponse[chunk] > 0 {
+					for _, c := range s.receivedResponse {
+						if c == chunk {
+							send = true
+						}
+					}
+
+					if send {
 						slog.Info("Chunk sent successfully", "chunk", chunk)
 						break
 					} else {
-						slog.Warn("Chunk not acknowledged, retrying", "chunk", chunk, "attempt", retry+1)
+						slog.Error("Chunk not sent, retrying", "chunk", chunk)
 					}
-
 					time.Sleep(200 * time.Millisecond)
 
 					if retry == 20 {
@@ -175,6 +181,7 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 
 func (s *FileService) startListeningRoutine() {
 	slog.Info("Starting listening routine")
+	chunkTrack := 0
 	go func() {
 		for {
 			buffer := make([]byte, 1024)
@@ -219,20 +226,31 @@ func (s *FileService) startListeningRoutine() {
 				}
 			}
 
-			currentChunk, err := strconv.Atoi(req.Headers.XHeader["X-Chunk"])
+			slog.Info("Client address set", "ip", s.clientAddr.IP.String(), "port", s.clientAddr.Port)
+			go func() {
+				receivedChunk, err := strconv.Atoi(req.Headers.XHeader["X-Chunk"])
 
-			if err != nil {
-				slog.Error("Error converting chunk to int", slog.String("error", err.Error()))
+				if err != nil {
+					slog.Error("Error converting chunk to int", slog.String("error", err.Error()))
 
-				s.currentChunk <- 0
+					s.currentChunk <- 0
 
-				continue
-			}
-			currentChunk++
+					return
+				}
 
-			s.receivedResponse = append(s.receivedResponse, currentChunk)
+				if receivedChunk == chunkTrack {
+					chunkTrack++
+				} else {
+					slog.Info("Chunk out of order, resending", "chunk", receivedChunk, "expected", chunkTrack)
+					chunkTrack = receivedChunk
+				}
 
-			s.currentChunk <- currentChunk
+				slog.Info("receivedChunk", "chunk", receivedChunk, "chunkTrack", chunkTrack)
+
+				s.receivedResponse = append(s.receivedResponse, receivedChunk)
+
+				s.currentChunk <- chunkTrack
+			}()
 		}
 	}()
 }
