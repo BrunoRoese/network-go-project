@@ -7,6 +7,7 @@ import (
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/protocol/validator"
+	"github.com/google/uuid"
 	"log/slog"
 	"net"
 )
@@ -15,6 +16,7 @@ type FileService struct {
 	FilePath   string
 	conn       *net.UDPConn
 	clientAddr *net.UDPAddr
+	currentId  uuid.UUID
 
 	currentChunk chan int
 	stopSending  chan bool
@@ -71,6 +73,8 @@ func (s *FileService) StartTransfer(ip string, filePath string) error {
 func (s *FileService) signalStart(specifiedClient *client.Client) error {
 	req := (&protocol.File{}).BuildRequest(nil, s.FilePath, *s.conn.LocalAddr().(*net.UDPAddr))
 
+	s.currentId = req.Information.Id
+
 	jsonReq, err := json.Marshal(req)
 
 	if err != nil {
@@ -123,6 +127,11 @@ func (s *FileService) startListeningRoutine() {
 
 			if err != nil {
 				slog.Error("Error parsing request", slog.String("error", err.Error()))
+				return
+			}
+
+			if req.Information.Id != s.currentId {
+				slog.Error("Invalid request ID", slog.String("expected", s.currentId.String()), slog.String("received", req.Information.Id.String()))
 				return
 			}
 
