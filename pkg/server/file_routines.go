@@ -16,7 +16,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 	go func() {
 		for {
 			slog.Info("[File saving] File saving routine started on source", newConn.LocalAddr().(*net.UDPAddr).String())
-			buffer := make([]byte, 1024)
+			buffer := make([]byte, 10000)
 			n, _, err := newConn.ReadFromUDPAddrPort(buffer)
 
 			if err != nil {
@@ -24,7 +24,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				continue
 			}
 
-			req, err := parser.ParseLargeRequest(buffer[:n])
+			req, err := parser.ParseRequest(buffer[:n])
 
 			if err != nil {
 				slog.Error("[File saving] Error handling request", slog.String("error", err.Error()))
