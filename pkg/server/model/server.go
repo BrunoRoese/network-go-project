@@ -48,6 +48,7 @@ func GetServer() (*Server, error) {
 		instance = &Server{
 			DiscoveryAddr: *discoveryConn.LocalAddr().(*net.UDPAddr),
 			GeneralAddr:   *generalConn.LocalAddr().(*net.UDPAddr),
+			FileAddrMap:   make(map[string]*net.UDPConn),
 			DiscoveryConn: discoveryConn,
 			GeneralConn:   generalConn,
 			ClientService: clientService,

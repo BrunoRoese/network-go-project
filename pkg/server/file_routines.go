@@ -15,6 +15,7 @@ var (
 func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 	go func() {
 		for {
+			slog.Info("File saving routine started on source", newConn.LocalAddr().(*net.UDPAddr).String())
 			buffer := make([]byte, 1024)
 			n, _, err := newConn.ReadFromUDPAddrPort(buffer)
 
@@ -33,7 +34,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 			err = validator.ValidateFileReq(req, lastRecChunk)
 
 			if err != nil {
-				slog.Error("Error validating request", slog.String("error", err.Error()))
+				slog.Error("Error validating request in file routine", slog.String("error", err.Error()))
 				continue
 			}
 
