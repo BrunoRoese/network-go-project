@@ -6,6 +6,8 @@ import (
 	"github.com/google/uuid"
 	"log/slog"
 	"strconv"
+	"sync"
+	"time"
 )
 
 func ValidateFileReq(req *protocol.Request, lastChunk int) error {
@@ -57,4 +59,40 @@ func CheckOrder(req protocol.Request, lastChunk int) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// Map to store recently processed request IDs and their timestamps
+var (
+	processedRequests = make(map[uuid.UUID]time.Time)
+	mu                sync.Mutex
+)
+
+// IsDuplicate checks if a request is a duplicate based on its ID and timestamp
+// It returns true if the request is a duplicate (seen within the last 100ms)
+func IsDuplicate(req *protocol.Request) bool {
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Get the current time
+	now := time.Now()
+
+	// Clean up old entries (older than 1 second)
+	for id, timestamp := range processedRequests {
+		if now.Sub(timestamp) > time.Second {
+			delete(processedRequests, id)
+		}
+	}
+
+	// Check if this request ID has been seen recently
+	lastSeen, exists := processedRequests[req.Information.Id]
+
+	// If this request was seen in the last 100ms, it's likely a duplicate
+	if exists && now.Sub(lastSeen) < 100*time.Millisecond {
+		slog.Info("[File saving] Detected duplicate request", slog.String("id", req.Information.Id.String()))
+		return true
+	}
+
+	// Record this request
+	processedRequests[req.Information.Id] = now
+	return false
 }

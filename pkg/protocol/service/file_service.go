@@ -111,45 +111,40 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 					}
 				}
 
-				if chunkI >= 0 && chunkI < len(fileContent) {
-					currentChunk := fileContent[chunkI]
-					slog.Info("Sending chunk", "chunk", currentChunk)
+				currentChunk := fileContent[chunkI]
+				slog.Info("Sending chunk", "chunk", currentChunk)
 
-					headers := map[string]string{
-						"X-Chunk":   strconv.Itoa(chunkI),
-						"requestId": s.currentId.String(),
-					}
-
-					res, err := parser.ParseProtocol(&protocol.Chunk{}, s.conn, currentChunk, headers)
-
-					if err != nil {
-						slog.Error("Error marshalling request", slog.String("error", err.Error()))
-						continue
-					}
-
-					_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
-
-					time.Sleep(10 * time.Millisecond)
-				} else {
-					slog.Error("Chunk index out of bounds", "chunk", chunk)
-
-					headers := map[string]string{
-						"requestId": s.currentId.String(),
-					}
-
-					res, err := parser.ParseProtocol(&protocol.End{}, s.conn, "DONE", headers)
-
-					if err != nil {
-						slog.Error("Error marshalling request", slog.String("error", err.Error()))
-						continue
-					}
-
-					_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
-
-					s.stopSending <- true
+				headers := map[string]string{
+					"X-Chunk":   strconv.Itoa(chunkI),
+					"requestId": s.currentId.String(),
 				}
+
+				res, err := parser.ParseProtocol(&protocol.Chunk{}, s.conn, currentChunk, headers)
+
+				if err != nil {
+					slog.Error("Error marshalling request", slog.String("error", err.Error()))
+					continue
+				}
+
+				_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
+
+				time.Sleep(10 * time.Millisecond)
 			}
 
+			slog.Error("Chunk index out of bounds", "chunk", chunk)
+
+			headers := map[string]string{
+				"requestId": s.currentId.String(),
+			}
+
+			res, err := parser.ParseProtocol(&protocol.End{}, s.conn, "DONE", headers)
+
+			if err != nil {
+				slog.Error("Error marshalling request", slog.String("error", err.Error()))
+				continue
+			}
+
+			_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
 		}
 	}(fileContent)
 }
