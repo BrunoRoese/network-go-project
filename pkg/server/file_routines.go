@@ -28,7 +28,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				continue
 			}
 
-			req, err := parser.ParseRequest(buffer[:n])
+			req, err := parser.ParseLargeRequest(buffer[:n])
 			if err != nil {
 				slog.Error("[File saving] Error handling request", slog.String("error", err.Error()))
 				continue
