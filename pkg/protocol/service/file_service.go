@@ -241,6 +241,16 @@ func (s *FileService) startListeningRoutine() {
 				if receivedChunk == chunkTrack {
 					chunkTrack++
 				} else {
+					for _, chunk := range s.receivedResponse {
+						if chunk == receivedChunk {
+							slog.Info("Chunk already received, skipping", "chunk", receivedChunk)
+							return
+						}
+						if chunk > receivedChunk {
+							slog.Info("Chunk already received, skipping", "chunk", receivedChunk)
+							return
+						}
+					}
 					slog.Info("Chunk out of order, resending", "chunk", receivedChunk, "expected", chunkTrack)
 					chunkTrack = receivedChunk
 				}

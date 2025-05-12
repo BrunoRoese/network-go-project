@@ -248,7 +248,6 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				expectedChunk++
 				chunks = append(chunks, currentChunk)
 
-				// Write chunk to file
 				if err := fileWriter.WriteChunk(req, currentChunk); err != nil {
 					slog.Error("[File saving] Error writing chunk to file", slog.String("error", err.Error()))
 				}
