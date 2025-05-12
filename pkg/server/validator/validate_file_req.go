@@ -35,10 +35,6 @@ func ValidateFileReq(req *protocol.Request, lastChunk int) error {
 		return nil
 	}
 
-	if req.Information.Method == "CHUNK" {
-		return errors.New("Duplicated chunk found")
-	}
-
 	expectedChecksum := req.Headers.XHeader["X-Checksum"]
 	calculatedChecksum := sha256.Sum256([]byte(req.Body))
 	calculatedChecksumStr := hex.EncodeToString(calculatedChecksum[:])
