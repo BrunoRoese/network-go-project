@@ -223,7 +223,12 @@ func (s *FileService) startListeningRoutine() {
 
 			if err != nil {
 				slog.Error("Error converting chunk to int", slog.String("error", err.Error()))
+
+				s.currentChunk <- 0
+
+				continue
 			}
+			currentChunk++
 
 			s.receivedResponse = append(s.receivedResponse, currentChunk)
 
