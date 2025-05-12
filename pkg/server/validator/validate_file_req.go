@@ -35,7 +35,7 @@ func ValidateFileReq(req *protocol.Request, lastChunk int) error {
 		return nil
 	}
 
-	if req.Information.Method == "CHUNK" && lastChunk == reqChunk {
+	if req.Information.Method == "CHUNK" {
 		return errors.New("Duplicated chunk found")
 	}
 
