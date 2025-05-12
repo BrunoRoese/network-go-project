@@ -32,7 +32,7 @@ func NewFileWriter(requestId string) (*FileWriter, error) {
 			return nil, err
 		}
 	}
-	
+
 	filePath := filepath.Join(resourcesPath, requestId+".pdf")
 	file, err := os.Create(filePath)
 	if err != nil {
@@ -52,7 +52,6 @@ func NewFileWriter(requestId string) (*FileWriter, error) {
 	}, nil
 }
 
-// WriteChunk writes a chunk to the file if it's in the correct order
 func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
 	fw.mutex.Lock()
 	defer fw.mutex.Unlock()
@@ -64,32 +63,27 @@ func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
 		}
 	}
 
-	// Get chunk number and total chunks
 	chunkStr := req.Headers.XHeader["X-Chunk"]
 	chunk, err := strconv.Atoi(chunkStr)
 	if err != nil {
 		return err
 	}
 
-	// Update total chunks if available
 	if endStr, ok := req.Headers.XHeader["X-End"]; ok {
 		if end, err := strconv.Atoi(endStr); err == nil {
 			fw.totalChunks = end
 		}
 	}
 
-	// Check if this is the chunk we're expecting
 	if chunk != fw.currentChunk+1 {
-		return nil // Not an error, just not the chunk we're expecting
+		return nil
 	}
 
-	// Decode base64 content
 	decodedData, err := base64.StdEncoding.DecodeString(req.Body)
 	if err != nil {
 		return err
 	}
 
-	// Write to file
 	_, err = fw.file.Write(decodedData)
 	if err != nil {
 		return err
@@ -97,7 +91,6 @@ func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
 
 	fw.writtenChunks = append(fw.writtenChunks, req.Headers.XHeader["X-Checksum"])
 
-	// Update current chunk
 	fw.currentChunk = chunk
 
 	slog.Info("[File saving] Wrote chunk to file",
