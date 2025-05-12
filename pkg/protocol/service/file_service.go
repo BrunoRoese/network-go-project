@@ -17,10 +17,11 @@ import (
 )
 
 type FileService struct {
-	FilePath   string
-	conn       *net.UDPConn
-	clientAddr *net.UDPAddr
-	currentId  uuid.UUID
+	FilePath    string
+	conn        *net.UDPConn
+	clientAddr  *net.UDPAddr
+	currentId   uuid.UUID
+	encodedFile string
 
 	currentChunk     chan int
 	stopSending      chan bool
@@ -54,11 +55,14 @@ func (s *FileService) StartTransfer(ip string, filePath string) error {
 	s.conn = conn
 
 	fileContent, err := parser.ParseFile(s.FilePath)
+	encodedSha, err := parser.EncodeSha(s.FilePath)
 
 	if err != nil {
 		slog.Error("Error parsing file", slog.String("error", err.Error()))
 		return err
 	}
+
+	s.encodedFile = encodedSha
 
 	err = s.signalStart(specifiedClient)
 
@@ -149,7 +153,7 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 					"requestId": s.currentId.String(),
 				}
 
-				res, err := parser.ParseProtocol(&protocol.End{}, s.conn, "DONE", headers)
+				res, err := parser.ParseProtocol(&protocol.End{}, s.conn, s.encodedFile, headers)
 
 				if err != nil {
 					slog.Error("Error marshalling request", slog.String("error", err.Error()))
@@ -157,8 +161,6 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 				}
 
 				_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
-
-				s.stopSending <- true
 			}
 		}
 	}(fileContent)
@@ -193,6 +195,11 @@ func (s *FileService) startListeningRoutine() {
 			if err != nil {
 				slog.Error("Error parsing source", slog.String("error", err.Error()))
 				return
+			}
+
+			if req.Information.Method == "NACK" || req.Information.Method == "END" {
+				slog.Error("Received NACK or END, stopping sending", slog.String("method", req.Information.Method))
+				s.stopSending <- true
 			}
 
 			slog.Info("Parsed source", "ip", ip, "port", port)

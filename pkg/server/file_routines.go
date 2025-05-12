@@ -91,14 +91,14 @@ func (fw *FileWriter) WriteChunk(req *protocol.Request) error {
 	// Update current chunk
 	fw.currentChunk = chunk
 
-	slog.Info("[File saving] Wrote chunk to file", 
-		slog.Int("chunk", chunk), 
+	slog.Info("[File saving] Wrote chunk to file",
+		slog.Int("chunk", chunk),
 		slog.Int("totalChunks", fw.totalChunks),
 		slog.String("requestId", fw.requestId))
 
 	// If this is the last chunk, close the file
 	if fw.totalChunks > 0 && fw.currentChunk >= fw.totalChunks {
-		slog.Info("[File saving] All chunks received, closing file", 
+		slog.Info("[File saving] All chunks received, closing file",
 			slog.String("requestId", fw.requestId))
 		return fw.file.Close()
 	}
@@ -190,7 +190,6 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				requests <- req
 				slog.Info("[File saving] Received chunk", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
 			} else if req.Information.Method == "END" {
-				// Close the file when END method is received
 				fileWriterMutex.Lock()
 				if fileWriter != nil {
 					if err := fileWriter.Close(); err != nil {
@@ -199,6 +198,18 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 					fileWriter = nil
 				}
 				fileWriterMutex.Unlock()
+
+				encodedSha, err := parser.EncodeSha("/resources/" + req.Information.Id.String() + ".pdf")
+
+				if err != nil {
+					slog.Error("[File saving] Error encoding SHA", slog.String("error", err.Error()))
+					continue
+				}
+
+				if encodedSha != req.Body {
+					slog.Error("[File saving] SHA mismatch", slog.String("expected", req.Body), slog.String("calculated", encodedSha))
+					req.Information.Method = "NACK"
+				}
 
 				requests <- req
 				slog.Info("[File saving] Received END request, file closed")

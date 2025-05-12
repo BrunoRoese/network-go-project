@@ -14,6 +14,12 @@ func GetRequestType(req *protocol.Request) func(request *protocol.Request) *prot
 	case "FILE":
 		slog.Info("FILE received")
 		return HandleFileReq
+	case "END":
+		slog.Info("END received")
+		return HandleEndReq
+	case "NACK":
+		slog.Info("NACK received")
+		return
 	default:
 		slog.Info("Default request received")
 		return HandleDefaultReq
