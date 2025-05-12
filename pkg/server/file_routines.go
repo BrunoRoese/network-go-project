@@ -50,6 +50,7 @@ func NewFileWriter(requestId string) (*FileWriter, error) {
 		requestId:     requestId,
 		totalChunks:   0,
 		resourcesPath: resourcesPath,
+		writtenChunks: []string{},
 	}, nil
 }
 
@@ -136,7 +137,6 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 		for {
 			slog.Info("[File saving] Waiting for message on port", slog.Int("port", newConn.LocalAddr().(*net.UDPAddr).Port))
 			buffer := make([]byte, 2048)
-			fileWriter.writtenChunks = make([]string, 0)
 			n, _, err := newConn.ReadFromUDPAddrPort(buffer)
 
 			if err != nil {
