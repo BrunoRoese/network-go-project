@@ -180,9 +180,11 @@ func (s *FileService) startListeningRoutine() {
 
 			slog.Info("Parsed source", "ip", ip, "port", port)
 
-			s.clientAddr = &net.UDPAddr{
-				IP:   net.ParseIP(ip),
-				Port: port,
+			if s.clientAddr == nil {
+				s.clientAddr = &net.UDPAddr{
+					IP:   net.ParseIP(ip),
+					Port: port,
+				}
 			}
 
 			s.receivedResponse[currentChunk] = true
