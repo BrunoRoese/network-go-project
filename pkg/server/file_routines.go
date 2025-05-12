@@ -8,10 +8,6 @@ import (
 	"strconv"
 )
 
-var (
-	lastRecChunk = map[string]int{}
-)
-
 func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 	var currentChunk = 0
 	go func() {
