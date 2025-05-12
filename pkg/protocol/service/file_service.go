@@ -101,21 +101,12 @@ func (s *FileService) startRoutines(fileContent []string) {
 func (s *FileService) startSendingRoutine(fileContent []string) {
 	go func(fileContent []string) {
 		for chunk := range s.currentChunk {
-			for chunkI := 0; chunkI < len(fileContent); chunkI++ {
-				for i, rChunk := range s.receivedResponse {
-					if rChunk < chunkI && rChunk != 0 {
-						slog.Info("Chunk received, out of order detected", "ExpectedChunk", chunkI)
-						slog.Info("Received chunk", "chunk", s.receivedResponse[chunkI])
-						chunkI = s.receivedResponse[i]
-						s.receivedResponse = make([]int, 0)
-					}
-				}
-
-				currentChunk := fileContent[chunkI]
+			if chunk < len(fileContent) {
+				currentChunk := fileContent[chunk]
 				slog.Info("Sending chunk", "chunk", currentChunk)
 
 				headers := map[string]string{
-					"X-Chunk":   strconv.Itoa(chunkI),
+					"X-Chunk":   strconv.Itoa(chunk),
 					"X-End":     strconv.Itoa(len(fileContent)),
 					"requestId": s.currentId.String(),
 				}
@@ -130,22 +121,22 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 				_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
 
 				time.Sleep(10 * time.Millisecond)
+			} else {
+				slog.Error("Chunk index out of bounds", "chunk", chunk)
+
+				headers := map[string]string{
+					"requestId": s.currentId.String(),
+				}
+
+				res, err := parser.ParseProtocol(&protocol.End{}, s.conn, "DONE", headers)
+
+				if err != nil {
+					slog.Error("Error marshalling request", slog.String("error", err.Error()))
+					continue
+				}
+
+				_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
 			}
-
-			slog.Error("Chunk index out of bounds", "chunk", chunk)
-
-			headers := map[string]string{
-				"requestId": s.currentId.String(),
-			}
-
-			res, err := parser.ParseProtocol(&protocol.End{}, s.conn, "DONE", headers)
-
-			if err != nil {
-				slog.Error("Error marshalling request", slog.String("error", err.Error()))
-				continue
-			}
-
-			_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
 		}
 	}(fileContent)
 }
@@ -195,9 +186,6 @@ func (s *FileService) startListeningRoutine() {
 			if err != nil {
 				slog.Error("Error converting chunk to int", slog.String("error", err.Error()))
 			}
-
-			s.receivedResponse = append(s.receivedResponse, currentChunk)
-			slog.Info("Response received for chunk", "chunk", currentChunk)
 
 			s.currentChunk <- currentChunk
 		}
