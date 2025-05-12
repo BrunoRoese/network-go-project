@@ -104,7 +104,7 @@ func (s *FileService) startRoutines(fileContent []string) {
 	s.currentChunk = make(chan int)
 
 	s.startSendingRoutine(fileContent)
-	s.startListeningRoutine()
+	s.startListeningRoutine(fileContent)
 }
 
 func (s *FileService) startSendingRoutine(fileContent []string) {
@@ -179,11 +179,18 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 	}(fileContent)
 }
 
-func (s *FileService) startListeningRoutine() {
+func (s *FileService) startListeningRoutine(fileContent []string) () {
 	slog.Info("Starting listening routine")
 	chunkTrack := 0
-	go func() {
+	go func(fileContent []string) {
 		for {
+			receivedCount := len(s.receivedResponse)
+			targetEnd := len(fileContent) - 1
+
+			if targetEnd > 0 {
+				percentage := (float64(receivedCount) / float64(targetEnd)) * 100
+				slog.Info("Progress", slog.Float64("percentage", percentage))
+			}
 			buffer := make([]byte, 1024)
 			n, addr, err := s.conn.ReadFromUDPAddrPort(buffer)
 			if err != nil {
@@ -262,7 +269,7 @@ func (s *FileService) startListeningRoutine() {
 				s.currentChunk <- chunkTrack
 			}()
 		}
-	}()
+	}(fileContent)
 }
 
 func (s *FileService) close() {
