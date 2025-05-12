@@ -19,7 +19,7 @@ func GetRequestType(req *protocol.Request) func(request *protocol.Request) *prot
 		return HandleEndReq
 	case "NACK":
 		slog.Info("NACK received")
-		return
+		return HandleNackReq
 	default:
 		slog.Info("Default request received")
 		return HandleDefaultReq

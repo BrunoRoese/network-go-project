@@ -8,7 +8,7 @@ import (
 	"net"
 )
 
-func HandleNackRe(request *protocol.Request) *protocol.Request {
+func HandleNackReq(request *protocol.Request) *protocol.Request {
 	responseId := request.Information.Id
 
 	if responseId == uuid.Nil {
