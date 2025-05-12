@@ -22,11 +22,9 @@ func HandleDefaultReq(req *protocol.Request) *protocol.Request {
 
 	udpAddr := net.UDPAddr{IP: net.ParseIP(localIp), Port: server.GeneralAddr.Port}
 
-	headers := map[string]string{}
+	req.Headers.XHeader["requestId"] = req.Information.Id.String()
 
-	headers["requestId"] = req.Information.Id.String()
-
-	response := res.BuildRequest(headers, "OK", udpAddr)
+	response := res.BuildRequest(req.Headers.XHeader, "OK", udpAddr)
 
 	return &response
 }
