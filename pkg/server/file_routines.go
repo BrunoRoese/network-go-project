@@ -158,7 +158,6 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 
 			if err != nil {
 				slog.Error("[File saving] Error converting chunk to int", slog.String("error", err.Error()))
-				continue
 			}
 
 			if req.Information.Method == "END" {
