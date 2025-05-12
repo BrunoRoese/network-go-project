@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net"
 	"strconv"
+	"time"
 )
 
 type FileService struct {
@@ -19,8 +20,9 @@ type FileService struct {
 	clientAddr *net.UDPAddr
 	currentId  uuid.UUID
 
-	currentChunk chan int
-	stopSending  chan bool
+	currentChunk     chan int
+	stopSending      chan bool
+	receivedResponse map[int]bool
 }
 
 func (s *FileService) StartTransfer(ip string, filePath string) error {
@@ -30,6 +32,7 @@ func (s *FileService) StartTransfer(ip string, filePath string) error {
 	}
 	s.FilePath = filePath
 	s.stopSending = make(chan bool)
+	s.receivedResponse = make(map[int]bool)
 
 	specifiedClient := client.FindByIp(ip)
 
@@ -116,7 +119,23 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 					continue
 				}
 
-				_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
+				for retries := 0; retries < 3; retries++ {
+					if s.receivedResponse[chunk] {
+						slog.Info("Already received response for chunk, skipping retry", "chunk", chunk)
+						break
+					}
+
+					_, _ = network.SendRequest(s.clientAddr.IP.String(), s.clientAddr.Port, res)
+
+					slog.Info("Sent chunk", "chunk", chunk)
+
+					time.Sleep(time.Second * 5)
+				}
+
+				if s.receivedResponse[chunk] == false {
+					slog.Error("Chunk not received after 3 retries, stopping")
+					s.stopSending <- true
+				}
 			} else {
 				slog.Error("Chunk index out of bounds", "chunk", chunk)
 				s.stopSending <- true
@@ -163,6 +182,9 @@ func (s *FileService) startListeningRoutine() {
 				IP:   net.ParseIP(ip),
 				Port: port,
 			}
+
+			s.receivedResponse[currentChunk] = true
+			slog.Info("Response received for chunk", "chunk", currentChunk)
 
 			currentChunk++
 
