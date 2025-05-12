@@ -154,7 +154,13 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				}
 				fileWriterMutex.Unlock()
 
-				encodedSha, err := parser.EncodeSha("/resources/" + req.Information.Id.String() + ".pdf")
+				filePath := "/resources/" + req.Information.Id.String() + ".pdf"
+				if _, err := os.Stat(filePath); os.IsNotExist(err) {
+					slog.Error("[File saving] File does not exist", slog.String("path", filePath))
+					return
+				}
+
+				encodedSha, err := parser.EncodeSha(filePath)
 
 				if err != nil {
 					slog.Error("[File saving] Error encoding SHA", slog.String("error", err.Error()))
