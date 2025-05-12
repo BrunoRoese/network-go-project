@@ -33,6 +33,11 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 					return
 				}
 
+				if req.Information.Method == "END" {
+					slog.Info("[File saving] Received end of file request")
+					return
+				}
+
 				if err = validator.ValidateFileReq(req, currentChunk); err != nil {
 					slog.Error("[File saving] Error validating request in file routine", slog.String("error", err.Error()))
 					return
