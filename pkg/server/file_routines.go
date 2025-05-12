@@ -129,7 +129,6 @@ func (fw *FileWriter) Close() error {
 }
 
 func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
-	var currentChunk = -1
 	var fileWriter *FileWriter
 	var fileWriterMutex sync.Mutex
 
@@ -152,6 +151,13 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 			req, err := parser.ParseLargeRequest(buffer[:n])
 			if err != nil {
 				slog.Error("[File saving] Error handling request", slog.String("error", err.Error()))
+				continue
+			}
+
+			currentChunk, err := strconv.Atoi(req.Headers.XHeader["X-Chunk"])
+
+			if err != nil {
+				slog.Error("[File saving] Error converting chunk to int", slog.String("error", err.Error()))
 				continue
 			}
 
