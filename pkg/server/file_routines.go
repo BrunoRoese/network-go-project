@@ -199,7 +199,7 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 					slog.Error("[File saving] Error checking order", slog.String("error", err.Error()),
 						slog.Int("expected", currentChunk+1),
 						slog.String("received", req.Headers.XHeader["X-Chunk"]))
-					req.Headers.XHeader["X-Chunk"] = strconv.Itoa(currentChunk)
+					req.Headers.XHeader["X-Chunk"] = strconv.Itoa(currentChunk + 1)
 					requests <- req
 					continue
 				}
