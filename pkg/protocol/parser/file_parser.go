@@ -10,31 +10,27 @@ import (
 )
 
 func ParseFile(filePath string) ([]string, error) {
-	file, err := os.Open(filePath)
+	return encodeFileToBase64Chunks(filePath, 1024)
+}
+
+func encodeFileToBase64Chunks(filePath string, chunkSize int) ([]string, error) {
+	file, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
 
-	const chunkSize = 1024
-	buffer := make([]byte, chunkSize)
-	var base64Chunks []string
+	encoded := base64.StdEncoding.EncodeToString(file)
 
-	for {
-		n, err := file.Read(buffer)
-		if n > 0 {
-			base64Chunk := base64.StdEncoding.EncodeToString(buffer[:n])
-			base64Chunks = append(base64Chunks, base64Chunk)
+	var chunks []string
+	for i := 0; i < len(encoded); i += chunkSize {
+		end := i + chunkSize
+		if end > len(encoded) {
+			end = len(encoded)
 		}
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
-		}
+		chunks = append(chunks, encoded[i:end])
 	}
 
-	return base64Chunks, nil
+	return chunks, nil
 }
 
 func EncodeSha(filePath string) (string, error) {

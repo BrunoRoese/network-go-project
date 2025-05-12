@@ -13,7 +13,7 @@ var (
 )
 
 var fileCmd = &cobra.Command{
-	Use:   "file",
+	Use:   "sendfile",
 	Short: "Indicates the start of a file transfer to a client",
 	Long:  `Indicates the start of a file transfer to a client.`,
 	Run: func(cmd *cobra.Command, args []string) {
