@@ -25,7 +25,7 @@ func GetListFromFile() *[]Client {
 	return &clients
 }
 
-func FindById(ip string) *Client {
+func FindByIp(ip string) *Client {
 	clientList := *GetListFromFile()
 
 	for _, c := range clientList {

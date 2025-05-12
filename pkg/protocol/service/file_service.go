@@ -1,12 +1,14 @@
 package service
 
 import (
+	"encoding/json"
+	"github.com/BrunoRoese/socket/pkg/client"
 	"github.com/BrunoRoese/socket/pkg/network"
+	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"github.com/BrunoRoese/socket/pkg/protocol/validator"
 	"log/slog"
 	"net"
-	"os"
 )
 
 type FileService struct {
@@ -24,6 +26,13 @@ func (s *FileService) StartTransfer(ip string, filePath string) error {
 	}
 	s.FilePath = filePath
 
+	specifiedClient := client.FindByIp(ip)
+
+	if specifiedClient == nil {
+		slog.Error("Client not found, stopping")
+		return nil
+	}
+
 	conn, err := network.CreateConn()
 
 	if err != nil {
@@ -34,15 +43,6 @@ func (s *FileService) StartTransfer(ip string, filePath string) error {
 
 	s.conn = conn
 
-	fileSize, err := s.getFileSize()
-
-	if err != nil {
-		slog.Error("Error getting file size", slog.String("error", err.Error()))
-		return err
-	}
-
-	slog.Info("File size", "size", fileSize)
-
 	fileContent, err := parser.ParseFile(s.FilePath)
 
 	if err != nil {
@@ -50,48 +50,46 @@ func (s *FileService) StartTransfer(ip string, filePath string) error {
 		return err
 	}
 
+	err = s.signalStart(specifiedClient)
+
+	if err != nil {
+		slog.Error("Error signaling start", slog.String("error", err.Error()))
+		s.stopSending <- true
+	}
+
+	s.startRoutines(fileContent)
+
+	<-s.stopSending
+
+	s.close()
+
+	return nil
+}
+
+func (s *FileService) signalStart(specifiedClient *client.Client) error {
+	req := (&protocol.File{}).BuildRequest(nil, s.FilePath, *s.conn.LocalAddr().(*net.UDPAddr))
+
+	jsonReq, err := json.Marshal(req)
+
+	if err != nil {
+		slog.Error("Error marshaling jsonReq")
+		return err
+	}
+
+	_, err = network.SendRequest(specifiedClient.Ip, specifiedClient.Port, jsonReq)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *FileService) startRoutines(fileContent []string) {
 	s.currentChunk = make(chan int)
 	s.stopSending = make(chan bool)
 
 	s.startSendingRoutine(fileContent)
 	s.startListeningRoutine()
-
-	slog.Info("File content", "content", len(fileContent))
-
-	<-s.stopSending
-
-	close(s.currentChunk)
-	close(s.stopSending)
-
-	return nil
-	//fileReq := protocol.File{}
-	//
-	//req := fileReq.BuildRequest(nil, filePath, net.UDPAddr{IP: net.ParseIP(ip), Port: 8080})
-	//
-	//jsonReq, err := json.Marshal(req)
-	//
-	//if err != nil {
-	//	slog.Error("Error marshaling jsonReq")
-	//	return err
-	//}
-	//
-	//_, err = network.SendRequest(ip, 8080, jsonReq)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//return nil
-}
-
-func (s *FileService) getFileSize() (int64, error) {
-	slog.Info("FilePath", "filePath", s.FilePath)
-	fileInfo, err := os.Stat(s.FilePath)
-
-	if err != nil {
-		return 0, err
-	}
-
-	return fileInfo.Size(), nil
 }
 
 func (s *FileService) startSendingRoutine(fileContent []string) {
@@ -114,16 +112,23 @@ func (s *FileService) startListeningRoutine() {
 	slog.Info("Starting listening routine")
 	currentChunk := 0
 	go func() {
-		buffer := make([]byte, 1024)
-		n, addr, err := s.conn.ReadFromUDPAddrPort(buffer)
-		if err != nil {
-			slog.Error("Error reading from UDP", slog.String("error", err.Error()))
-			return
+		for {
+			buffer := make([]byte, 1024)
+			n, addr, err := s.conn.ReadFromUDPAddrPort(buffer)
+			if err != nil {
+				slog.Error("Error reading from UDP", slog.String("error", err.Error()))
+				return
+			}
+
+			slog.Info("Response received", "data", string(buffer[:n]), "from", addr.String())
+			currentChunk++
+
+			s.currentChunk <- currentChunk
 		}
-
-		slog.Info("Response received", "data", string(buffer[:n]), "from", addr.String())
-		currentChunk++
-
-		s.currentChunk <- currentChunk
 	}()
+}
+
+func (s *FileService) close() {
+	close(s.currentChunk)
+	close(s.stopSending)
 }

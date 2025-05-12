@@ -9,7 +9,7 @@ import (
 )
 
 func Talk(ip string, message string) {
-	specifiedClient := client.FindById(ip)
+	specifiedClient := client.FindByIp(ip)
 
 	if specifiedClient == nil {
 		slog.Error("Client not found, stopping")
