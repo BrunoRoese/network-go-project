@@ -15,26 +15,26 @@ var (
 func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 	go func() {
 		for {
-			slog.Info("File saving routine started on source", newConn.LocalAddr().(*net.UDPAddr).String())
+			slog.Info("[File saving] File saving routine started on source", newConn.LocalAddr().(*net.UDPAddr).String())
 			buffer := make([]byte, 1024)
 			n, _, err := newConn.ReadFromUDPAddrPort(buffer)
 
 			if err != nil {
-				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
+				slog.Error("[File saving] Error reading from UDP connection", slog.String("error", err.Error()))
 				continue
 			}
 
 			req, err := parser.ParseRequest(buffer[:n])
 
 			if err != nil {
-				slog.Error("Error handling request", slog.String("error", err.Error()))
+				slog.Error("[File saving] Error handling request", slog.String("error", err.Error()))
 				continue
 			}
 
 			err = validator.ValidateFileReq(req, lastRecChunk)
 
 			if err != nil {
-				slog.Error("Error validating request in file routine", slog.String("error", err.Error()))
+				slog.Error("[File saving] Error validating request in file routine", slog.String("error", err.Error()))
 				continue
 			}
 
@@ -42,12 +42,12 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 				chunk, err := strconv.Atoi(req.Headers.XHeader["X-Chunk"])
 
 				if err != nil {
-					slog.Error("Error converting chunk to int", slog.String("error", err.Error()))
+					slog.Error("[File saving] Error converting chunk to int", slog.String("error", err.Error()))
 					continue
 				}
 
 				lastRecChunk = chunk
-				slog.Info("Received chunk", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
+				slog.Info("[File saving] Received chunk", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
 			}
 
 			req.Headers.XHeader["X-Chunk"] = strconv.Itoa(lastRecChunk)
