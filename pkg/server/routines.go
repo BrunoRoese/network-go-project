@@ -56,6 +56,8 @@ func (s *Service) startDiscoveryRoutine() {
 			buffer := make([]byte, 1024)
 			n, addr, err := s.Server.DiscoveryConn.ReadFromUDPAddrPort(buffer)
 
+			slog.Info("Waiting for message", slog.String("from", addr.String()))
+
 			if err != nil {
 				slog.Error("Error reading from UDP connection", slog.String("error", err.Error()))
 				continue
@@ -81,19 +83,17 @@ func (s *Service) startDiscoveryRoutine() {
 				continue
 			}
 
-			if foundClient.Ip != ip || foundClient.Port != port {
-				slog.Info("Client IP or port changed, updating")
-				foundClient.Ip = ip
-				foundClient.Port = port
-				s.ClientService.UpdateClient(foundClient)
-			}
-
 			if foundClient == nil {
 				if handleErr := s.ClientService.HandleNewClient(req); handleErr != nil {
 					slog.Error("Error handling new client", slog.String("error", handleErr.Error()))
 					continue
 				}
 			} else {
+				if foundClient.Ip != ip || foundClient.Port != port {
+					slog.Info("Client IP or port changed, updating")
+					foundClient.Ip = ip
+					foundClient.Port = port
+				}
 				slog.Info("Client found, updating")
 				s.ClientService.UpdateClient(foundClient)
 			}
