@@ -112,7 +112,7 @@ func (s *FileService) startRoutines(fileContent []string) {
 func (s *FileService) startSendingRoutine(fileContent []string) {
 	go func(fileContent []string) {
 		for chunk := range s.currentChunk {
-			if chunk < len(fileContent) {
+			if chunk < len(fileContent)-1 {
 				currentChunk := fileContent[chunk]
 				//slog.Info("Sending chunk", "chunk", currentChunk)
 
@@ -151,10 +151,9 @@ func (s *FileService) startSendingRoutine(fileContent []string) {
 					}
 					time.Sleep(200 * time.Millisecond)
 
-					if retry == 20 {
-						//slog.Error("Max retries reached, stopping sending", "chunk", chunk)
-						s.stopSending <- true
-						break
+					if retry == 19 {
+						chunk++
+						s.currentChunk <- chunk
 					}
 				}
 			} else {
@@ -272,7 +271,7 @@ func (s *FileService) startListeningRoutine(fileContent []string) {
 						}
 					}
 					//slog.Info("Chunk out of order, resending", "chunk", receivedChunk, "expected", chunkTrack)
-					chunkTrack = receivedChunk
+					chunkTrack++
 				}
 
 				//slog.Info("receivedChunk", "chunk", receivedChunk, "chunkTrack", chunkTrack)

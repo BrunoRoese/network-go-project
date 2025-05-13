@@ -161,11 +161,18 @@ func (s *Service) startFileSavingRoutine(newConn *net.UDPConn) {
 
 			currentChunk, err := strconv.Atoi(req.Headers.XHeader["X-Chunk"])
 
+			var receivedChunk bool
 			for _, c := range chunks {
 				if c == currentChunk {
 					slog.Info("[File saving] Chunk already received, skipping", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
-					continue
+					receivedChunk = true
 				}
+			}
+
+			if receivedChunk {
+				slog.Info("[File saving] Chunk already received, skipping", slog.String("chunk", req.Headers.XHeader["X-Chunk"]))
+				requests <- req
+				continue
 			}
 
 			if currentChunk != expectedChunk {
