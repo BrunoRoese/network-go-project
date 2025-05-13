@@ -262,11 +262,11 @@ func (s *FileService) startListeningRoutine(fileContent []string) {
 				} else {
 					for _, chunk := range s.receivedResponse {
 						if chunk == receivedChunk {
-							//slog.Info("Chunk already received, skipping", "chunk", receivedChunk)
+							chunkTrack = receivedChunk + 1
 							return
 						}
 						if chunk > receivedChunk {
-							//slog.Info("Chunk already received, skipping", "chunk", receivedChunk)
+							chunkTrack = receivedChunk + 1
 							return
 						}
 					}
