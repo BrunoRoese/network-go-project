@@ -2,8 +2,6 @@ package client
 
 import (
 	"encoding/json"
-	"errors"
-	"github.com/BrunoRoese/socket/pkg/network"
 	"github.com/BrunoRoese/socket/pkg/protocol"
 	"github.com/BrunoRoese/socket/pkg/protocol/parser"
 	"log/slog"
